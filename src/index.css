@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Vanshé Luxury Palette - White & Cream */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 8%;
+    
+    --card: 40 20% 97%;
+    --card-foreground: 0 0% 8%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+    
+    --primary: 0 0% 8%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 40 20% 96%;
+    --secondary-foreground: 0 0% 8%;
+    
+    --muted: 40 15% 94%;
+    --muted-foreground: 0 0% 40%;
+    
+    --accent: 40 25% 93%;
+    --accent-foreground: 0 0% 8%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 40 15% 90%;
+    --input: 40 15% 90%;
+    --ring: 0 0% 8%;
+    
+    --radius: 0.5rem;
+    
+    /* Vanshé Custom Tokens */
+    --beige: 40 25% 95%;
+    --beige-dark: 40 20% 88%;
+    --cream: 45 30% 94%;
+    --charcoal: 0 0% 15%;
+    --gold: 43 74% 49%;
+    --nav-icon: 40 20% 75%;
+    
+    /* Typography */
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    
+    /* Spacing */
+    --nav-height: 64px;
+    --category-strip-height: 48px;
+    --bottom-nav-height: 72px;
+    
+    /* Shadows */
+    --shadow-soft: 0 2px 8px hsl(0 0% 0% / 0.04);
+    --shadow-medium: 0 4px 16px hsl(0 0% 0% / 0.08);
+    --shadow-elevated: 0 8px 32px hsl(0 0% 0% / 0.12);
+    
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .section-title {
+    @apply text-xl md:text-2xl tracking-wide uppercase;
+    font-family: var(--font-serif);
+    letter-spacing: 0.1em;
+  }
+  
+  .nav-link {
+    @apply text-sm font-medium tracking-wider uppercase transition-colors duration-200;
+    font-family: var(--font-sans);
+  }
+  
+  .category-tab {
+    @apply px-4 py-2 text-xs font-medium tracking-wider uppercase whitespace-nowrap transition-all duration-200;
+    font-family: var(--font-sans);
+  }
+  
+  .category-tab-active {
+    @apply bg-primary text-primary-foreground;
+  }
+  
+  .product-card {
+    @apply bg-card overflow-hidden transition-all duration-300;
+  }
+  
+  .product-card:hover {
+    @apply shadow-md;
+  }
+  
+  .product-image {
+    @apply aspect-[3/4] w-full object-cover bg-muted;
+  }
+  
+  .product-name {
+    @apply text-sm font-medium leading-snug;
+    font-family: var(--font-sans);
+  }
+  
+  .product-price {
+    @apply text-sm text-muted-foreground;
+    font-family: var(--font-sans);
+  }
+  
+  .btn-filter {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 text-xs font-medium tracking-wider uppercase border border-border bg-background transition-all duration-200;
+    font-family: var(--font-sans);
+  }
+  
+  .btn-filter:hover {
+    @apply bg-secondary border-foreground/20;
+  }
+  
+  .bottom-nav-item {
+    @apply flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors duration-200;
+    font-family: var(--font-sans);
+  }
+  
+  .bottom-nav-item.active {
+    @apply text-primary;
+  }
+  
+  .overlay-panel {
+    @apply fixed inset-0 z-50 bg-background/80 backdrop-blur-sm;
+  }
+  
+  .filter-panel {
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl shadow-elevated max-h-[80vh] overflow-y-auto;
+  }
+  
+  .search-overlay {
+    @apply fixed inset-0 z-50 bg-background;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+}
