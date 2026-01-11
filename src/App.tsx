@@ -30,6 +30,7 @@ import { AdminProducts } from "./pages/admin/AdminProducts";
 import { AdminCategories } from "./pages/admin/AdminCategories";
 import { AdminVariants } from "./pages/admin/AdminVariants";
 import { AdminImages } from "./pages/admin/AdminImages";
+import { AdminProductImages } from "./pages/admin/AdminProductImages";
 import { AdminOrders } from "./pages/admin/AdminOrders";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 
@@ -61,6 +62,7 @@ const App = () => (
                 <Route path="/admin/categories" element={<AdminProtectedRoute><AdminCategories /></AdminProtectedRoute>} />
                 <Route path="/admin/variants" element={<AdminProtectedRoute><AdminVariants /></AdminProtectedRoute>} />
                 <Route path="/admin/images" element={<AdminProtectedRoute><AdminImages /></AdminProtectedRoute>} />
+                <Route path="/admin/product-images" element={<AdminProtectedRoute><AdminProductImages /></AdminProtectedRoute>} />
                 <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
                 <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
                 
