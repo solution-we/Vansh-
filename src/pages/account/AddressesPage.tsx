@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Plus } from 'lucide-react';
+import { ArrowLeft, MapPin, Plus, Loader2 } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Address {
   id: string;
@@ -21,13 +23,15 @@ interface Address {
   city: string;
   state: string;
   pincode: string;
+  country_code: string;
+  is_default: boolean;
 }
 
 export default function AddressesPage() {
-  const [addresses, setAddresses] = useState<Address[]>(() => {
-    const stored = localStorage.getItem('vanshe-addresses');
-    return stored ? JSON.parse(stored) : [];
-  });
+  const { user } = useAuth();
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -38,31 +42,116 @@ export default function AddressesPage() {
     pincode: '',
   });
 
-  const handleSave = () => {
+  // Fetch addresses from database
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchAddresses = async () => {
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching addresses:', error);
+        toast.error('Failed to load addresses');
+      } else {
+        setAddresses(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchAddresses();
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error('Please sign in to save addresses');
+      return;
+    }
+
     if (!formData.name || !formData.phone || !formData.address || !formData.city || !formData.state || !formData.pincode) {
       toast.error('Please fill all fields');
       return;
     }
 
-    const newAddress: Address = {
-      id: Date.now().toString(),
-      ...formData,
-    };
+    setSaving(true);
 
-    const updated = [...addresses, newAddress];
-    setAddresses(updated);
-    localStorage.setItem('vanshe-addresses', JSON.stringify(updated));
+    const { data, error } = await supabase
+      .from('user_addresses')
+      .insert({
+        user_id: user.id,
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
+        country_code: '+91',
+        is_default: addresses.length === 0,
+      })
+      .select()
+      .single();
+
+    setSaving(false);
+
+    if (error) {
+      console.error('Error saving address:', error);
+      toast.error('Failed to save address');
+      return;
+    }
+
+    setAddresses(prev => [data, ...prev]);
     setDialogOpen(false);
     setFormData({ name: '', phone: '', address: '', city: '', state: '', pincode: '' });
     toast.success('Address added');
   };
 
-  const handleDelete = (id: string) => {
-    const updated = addresses.filter(a => a.id !== id);
-    setAddresses(updated);
-    localStorage.setItem('vanshe-addresses', JSON.stringify(updated));
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('user_addresses')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting address:', error);
+      toast.error('Failed to remove address');
+      return;
+    }
+
+    setAddresses(prev => prev.filter(a => a.id !== id));
     toast.success('Address removed');
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background pb-bottom-nav">
+        <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
+          <nav className="container flex items-center justify-between h-nav">
+            <Link to="/account" className="p-2 hover:bg-secondary rounded-full transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <span className="font-serif text-lg font-medium">My Addresses</span>
+            <div className="w-9" />
+          </nav>
+        </header>
+        <main className="pt-nav px-4 py-8">
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+            <p className="text-muted-foreground">Please sign in to manage addresses</p>
+            <Link to="/auth" className="mt-4 text-primary underline">Sign In</Link>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-bottom-nav">
@@ -84,7 +173,11 @@ export default function AddressesPage() {
 
       {/* Main Content */}
       <main className="pt-nav px-4 py-8">
-        {addresses.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : addresses.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
               <MapPin className="w-8 h-8 text-muted-foreground" />
@@ -143,6 +236,7 @@ export default function AddressesPage() {
                 id="name" 
                 value={formData.name}
                 onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
@@ -151,6 +245,7 @@ export default function AddressesPage() {
                 id="phone" 
                 value={formData.phone}
                 onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                maxLength={15}
               />
             </div>
             <div className="space-y-2">
@@ -159,6 +254,7 @@ export default function AddressesPage() {
                 id="address" 
                 value={formData.address}
                 onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))}
+                maxLength={255}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -168,6 +264,7 @@ export default function AddressesPage() {
                   id="city" 
                   value={formData.city}
                   onChange={(e) => setFormData(p => ({ ...p, city: e.target.value }))}
+                  maxLength={100}
                 />
               </div>
               <div className="space-y-2">
@@ -176,6 +273,7 @@ export default function AddressesPage() {
                   id="state" 
                   value={formData.state}
                   onChange={(e) => setFormData(p => ({ ...p, state: e.target.value }))}
+                  maxLength={100}
                 />
               </div>
             </div>
@@ -185,10 +283,12 @@ export default function AddressesPage() {
                 id="pincode" 
                 value={formData.pincode}
                 onChange={(e) => setFormData(p => ({ ...p, pincode: e.target.value }))}
+                maxLength={10}
               />
             </div>
           </div>
-          <Button onClick={handleSave} className="w-full">
+          <Button onClick={handleSave} className="w-full" disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Save Address
           </Button>
         </DialogContent>
