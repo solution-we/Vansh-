@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   Package, 
   Image, 
+  Images,
   Palette, 
   LogOut, 
   ChevronLeft,
@@ -22,8 +23,9 @@ interface AdminLayoutProps {
 const navItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { title: 'Products', href: '/admin/products', icon: Package },
+  { title: 'Product Images', href: '/admin/product-images', icon: Images },
   { title: 'Categories', href: '/admin/categories', icon: FolderOpen },
-  { title: 'Images', href: '/admin/images', icon: Image },
+  { title: 'Site Images', href: '/admin/images', icon: Image },
   { title: 'Variants', href: '/admin/variants', icon: Palette },
   { title: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { title: 'Users', href: '/admin/users', icon: Users },
