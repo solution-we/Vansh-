@@ -174,23 +174,16 @@ export function useProductImages(productId: string, selectedColor?: string | nul
         // Get common images (always shown)
         const commonImages = images.filter(img => img.is_common);
         
-        console.log('[useProductImages] All images:', images.map(i => ({ color: i.color, is_common: i.is_common, url: i.image_url.slice(-20) })));
-        console.log('[useProductImages] Selected color:', selectedColor);
-        console.log('[useProductImages] Normalized selected color:', normalizeColor(selectedColor));
-        
         // Get color-specific images
         const colorImages = selectedColor
           ? images.filter(img => {
               const imgColorNorm = normalizeColor(img.color);
               const selectedColorNorm = normalizeColor(selectedColor);
-              console.log(`[useProductImages] Comparing: "${imgColorNorm}" === "${selectedColorNorm}" = ${imgColorNorm === selectedColorNorm}`);
               return !img.is_common && imgColorNorm === selectedColorNorm;
             })
           : [];
 
-        console.log('[useProductImages] Color-specific images found:', colorImages.length);
-
-        // If no color selected or no color-specific images, show primary or first available
+        // If no color-specific images, show all non-common images
         const fallbackImages = colorImages.length === 0
           ? images.filter(img => !img.is_common)
           : [];
@@ -199,8 +192,6 @@ export function useProductImages(productId: string, selectedColor?: string | nul
         const combined = colorImages.length > 0 
           ? [...colorImages, ...commonImages]
           : [...fallbackImages, ...commonImages];
-        
-        console.log('[useProductImages] Final combined images:', combined.length);
         
         // Return unique images by URL
         const seen = new Set<string>();
