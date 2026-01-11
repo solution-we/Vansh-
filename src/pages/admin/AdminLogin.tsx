@@ -6,10 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Lock, Eye, EyeOff } from 'lucide-react';
-
-// Only these emails are allowed to be admins
-const ALLOWED_ADMIN_EMAILS = ['vansheofficial@gamil.com'];
+import { Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 export const AdminLogin = () => {
   const navigate = useNavigate();
@@ -17,54 +14,19 @@ export const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'login' | 'forgot'>('login');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Check if email is in the allowed list
-      if (!ALLOWED_ADMIN_EMAILS.includes(email.toLowerCase())) {
-        toast.error('Access denied. This email is not authorized for admin access.');
-        setLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        // If user doesn't exist yet and it's a valid admin email, sign them up
-        if (error.message.includes('Invalid login credentials')) {
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/admin`,
-            }
-          });
-
-          if (signUpError) throw signUpError;
-
-          if (signUpData.user) {
-            // Add admin role
-            const { error: roleError } = await supabase
-              .from('user_roles')
-              .insert([{ user_id: signUpData.user.id, role: 'admin' }]);
-
-            if (roleError) {
-              console.error('Error adding admin role:', roleError);
-            }
-
-            toast.success('Admin account created! Please check your email to confirm, then log in again.');
-            setLoading(false);
-            return;
-          }
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       // Check if user has admin role
       const { data: roleData, error: roleError } = await supabase.rpc('has_role', {
@@ -75,36 +37,93 @@ export const AdminLogin = () => {
       if (roleError) throw roleError;
 
       if (!roleData) {
-        // Add admin role if email is allowed but role doesn't exist
-        if (ALLOWED_ADMIN_EMAILS.includes(email.toLowerCase())) {
-          const { error: addRoleError } = await supabase
-            .from('user_roles')
-            .upsert([{ user_id: data.user.id, role: 'admin' }], { onConflict: 'user_id,role' });
-
-          if (addRoleError) {
-            console.error('Error adding admin role:', addRoleError);
-            await supabase.auth.signOut();
-            toast.error('Failed to assign admin role. Please contact support.');
-            setLoading(false);
-            return;
-          }
-        } else {
-          await supabase.auth.signOut();
-          toast.error('Access denied. Admin privileges required.');
-          setLoading(false);
-          return;
-        }
+        await supabase.auth.signOut();
+        toast.error('Access denied. Admin privileges required.');
+        setLoading(false);
+        return;
       }
 
       toast.success('Welcome back, Admin!');
       navigate('/admin');
     } catch (error: any) {
       console.error('Login error:', error);
-      toast.error(error.message || 'Failed to login');
+      if (error.message.includes('Invalid login credentials')) {
+        toast.error('Invalid email or password');
+      } else if (error.message.includes('Email not confirmed')) {
+        toast.error('Please verify your email first');
+      } else {
+        toast.error(error.message || 'Failed to login');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/admin/login`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset email sent! Check your inbox.');
+      setMode('login');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reset email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (mode === 'forgot') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
+              <Lock className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Reset Password</CardTitle>
+            <CardDescription>
+              Enter your email to receive a password reset link
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </Button>
+            </form>
+            <div className="mt-4 text-center">
+              <Button variant="link" onClick={() => setMode('login')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
@@ -132,7 +151,16 @@ export const AdminLogin = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <button
+                  type="button"
+                  onClick={() => setMode('forgot')}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
