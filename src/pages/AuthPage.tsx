@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, KeyRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BottomNav } from '@/components/layout/BottomNav';
 
-type AuthMode = 'signin' | 'signup' | 'verify-email';
+type AuthMode = 'signin' | 'signup' | 'verify-email' | 'forgot-password' | 'reset-sent';
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -186,6 +186,39 @@ export default function AuthPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      setMode('reset-sent');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -208,7 +241,76 @@ export default function AuthPage() {
           Back to Home
         </Link>
 
-        {mode === 'verify-email' ? (
+        {mode === 'reset-sent' ? (
+          /* Password Reset Sent */
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+              <Mail className="w-8 h-8 text-foreground" />
+            </div>
+            <h1 className="font-serif text-2xl md:text-3xl mb-2">Check Your Email</h1>
+            <p className="text-sm text-muted-foreground mb-2">
+              We've sent a password reset link to
+            </p>
+            <p className="text-sm font-medium mb-6">{email}</p>
+            <p className="text-sm text-muted-foreground mb-8">
+              Click the link in the email to reset your password.
+            </p>
+
+            <button
+              onClick={() => {
+                setMode('signin');
+                setPassword('');
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        ) : mode === 'forgot-password' ? (
+          /* Forgot Password */
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+              <KeyRound className="w-8 h-8 text-foreground" />
+            </div>
+            <h1 className="font-serif text-2xl md:text-3xl mb-2">Forgot Password?</h1>
+            <p className="text-sm text-muted-foreground mb-8">
+              Enter your email and we'll send you a link to reset your password.
+            </p>
+
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2 text-left">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-12 px-4 border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-foreground"
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 bg-foreground text-background font-medium uppercase tracking-wider hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </button>
+            </form>
+
+            <button
+              onClick={() => {
+                setMode('signin');
+                setPassword('');
+              }}
+              className="mt-6 text-sm text-muted-foreground hover:text-foreground"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        ) : mode === 'verify-email' ? (
           /* Email Verification Sent */
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
@@ -275,9 +377,20 @@ export default function AuthPage() {
 
               {/* Password */}
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs uppercase tracking-wider text-muted-foreground">
+                    Password
+                  </label>
+                  {mode === 'signin' && (
+                    <button
+                      type="button"
+                      onClick={() => setMode('forgot-password')}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
