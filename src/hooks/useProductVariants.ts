@@ -164,31 +164,43 @@ export function useProductImages(productId: string, selectedColor?: string | nul
     fetchImages();
   }, [productId]);
 
+  // Normalize color for comparison
+  const normalizeColor = (color: string | null | undefined) => 
+    color?.toLowerCase().replace(/\s+/g, '-') || '';
+
   // Filter images based on selected color
   const filteredImages = images.length > 0
     ? (() => {
         // Get common images (always shown)
         const commonImages = images.filter(img => img.is_common);
         
-        // Normalize color for comparison
-        const normalizeColor = (color: string | null | undefined) => 
-          color?.toLowerCase().replace(/\s+/g, '-') || '';
+        console.log('[useProductImages] All images:', images.map(i => ({ color: i.color, is_common: i.is_common, url: i.image_url.slice(-20) })));
+        console.log('[useProductImages] Selected color:', selectedColor);
+        console.log('[useProductImages] Normalized selected color:', normalizeColor(selectedColor));
         
         // Get color-specific images
         const colorImages = selectedColor
-          ? images.filter(img => 
-              !img.is_common && 
-              normalizeColor(img.color) === normalizeColor(selectedColor)
-            )
+          ? images.filter(img => {
+              const imgColorNorm = normalizeColor(img.color);
+              const selectedColorNorm = normalizeColor(selectedColor);
+              console.log(`[useProductImages] Comparing: "${imgColorNorm}" === "${selectedColorNorm}" = ${imgColorNorm === selectedColorNorm}`);
+              return !img.is_common && imgColorNorm === selectedColorNorm;
+            })
           : [];
 
-        // If no color-specific images found, get all non-common images
-        const fallbackImages = colorImages.length === 0 && !selectedColor
+        console.log('[useProductImages] Color-specific images found:', colorImages.length);
+
+        // If no color selected or no color-specific images, show primary or first available
+        const fallbackImages = colorImages.length === 0
           ? images.filter(img => !img.is_common)
           : [];
 
         // Combine: color-specific first, then common, then fallback
-        const combined = [...colorImages, ...commonImages, ...fallbackImages];
+        const combined = colorImages.length > 0 
+          ? [...colorImages, ...commonImages]
+          : [...fallbackImages, ...commonImages];
+        
+        console.log('[useProductImages] Final combined images:', combined.length);
         
         // Return unique images by URL
         const seen = new Set<string>();
