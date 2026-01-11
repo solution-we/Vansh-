@@ -19,10 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Star, Search, Upload, Link, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Star, Search, Upload, Link, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAllSiteImages } from '@/hooks/useSiteImages';
+import { useAllCategories, Category } from '@/hooks/useCategories';
 
 interface Product {
   id: string;
@@ -92,6 +93,17 @@ export const AdminImages = () => {
   const [siteImageUploadType, setSiteImageUploadType] = useState<'url' | 'file'>('file');
   const siteImageInputRef = useRef<HTMLInputElement>(null);
   const [siteImageFilter, setSiteImageFilter] = useState<string>('all');
+
+  // Category thumbnails
+  const { categories, loading: categoriesLoading, refetch: refetchCategories } = useAllCategories();
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
+  const [categoryImagePreview, setCategoryImagePreview] = useState<string | null>(null);
+  const [categoryImageUrl, setCategoryImageUrl] = useState('');
+  const [categoryUploadType, setCategoryUploadType] = useState<'url' | 'file'>('file');
+  const categoryInputRef = useRef<HTMLInputElement>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchImages();
@@ -374,6 +386,122 @@ export const AdminImages = () => {
     }
   };
 
+  // Category thumbnail handlers
+  const handleCategoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCategoryImageFile(file);
+      const url = URL.createObjectURL(file);
+      setCategoryImagePreview(url);
+    }
+  };
+
+  const openCategoryDialog = (category: Category) => {
+    setSelectedCategory(category);
+    setCategoryImageUrl(category.thumbnail_url || '');
+    setCategoryImageFile(null);
+    setCategoryImagePreview(null);
+    setCategoryUploadType('file');
+    setCategoryDialogOpen(true);
+  };
+
+  const handleUpdateCategoryThumbnail = async () => {
+    if (!selectedCategory) return;
+    setUploading(true);
+
+    try {
+      let newImageUrl = categoryImageUrl;
+
+      if (categoryUploadType === 'file' && categoryImageFile) {
+        newImageUrl = await uploadFile(categoryImageFile);
+      }
+
+      if (!newImageUrl) {
+        toast.error('Please provide an image');
+        setUploading(false);
+        return;
+      }
+
+      // Update the category thumbnail
+      const { error } = await supabase
+        .from('categories')
+        .update({ thumbnail_url: newImageUrl })
+        .eq('id', selectedCategory.id);
+
+      if (error) throw error;
+
+      // Also update site_images if exists
+      const imageKey = `category_${selectedCategory.section}_${selectedCategory.name}`;
+      await supabase
+        .from('site_images')
+        .update({ image_url: newImageUrl })
+        .eq('image_key', imageKey);
+
+      toast.success('Category thumbnail updated');
+      setCategoryDialogOpen(false);
+      refetchCategories();
+    } catch (error: any) {
+      console.error('Error updating category thumbnail:', error);
+      toast.error(error.message || 'Failed to update thumbnail');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Sync categories to site_images
+  const syncCategoriesToSiteImages = async () => {
+    setSyncing(true);
+    try {
+      for (const category of categories) {
+        const imageKey = `category_${category.section}_${category.name}`;
+        
+        // Check if already exists
+        const { data: existing } = await supabase
+          .from('site_images')
+          .select('id')
+          .eq('image_key', imageKey)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase
+            .from('site_images')
+            .insert([{
+              image_key: imageKey,
+              image_url: category.thumbnail_url,
+              description: `${category.display_name} category thumbnail for ${category.section}`,
+              page: category.section,
+              image_type: 'category_thumbnail',
+              section: category.section,
+              category: category.name,
+            }]);
+        }
+      }
+      toast.success('Categories synced to site images');
+      refetchSiteImages();
+    } catch (error: any) {
+      console.error('Error syncing categories:', error);
+      toast.error('Failed to sync categories');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Group categories by section
+  const categoriesBySection = categories.reduce((acc, cat) => {
+    if (!acc[cat.section]) {
+      acc[cat.section] = [];
+    }
+    acc[cat.section].push(cat);
+    return acc;
+  }, {} as Record<string, Category[]>);
+
+  const SECTION_ORDER = ['men', 'women', 'kids'];
+  const SECTION_LABELS_MAP: Record<string, string> = {
+    men: 'Men',
+    women: 'Women',
+    kids: 'Kids',
+  };
+
   const filteredImages = images.filter(image =>
     image.products?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -602,13 +730,92 @@ export const AdminImages = () => {
           />
         </div>
 
-        {/* Tabs for Site Images, Thumbnails, and Gallery */}
-        <Tabs defaultValue="site" className="space-y-4">
+        {/* Tabs for Site Images, Categories, Thumbnails, and Gallery */}
+        <Tabs defaultValue="categories" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="categories">Category Thumbnails</TabsTrigger>
             <TabsTrigger value="site">Site Images</TabsTrigger>
             <TabsTrigger value="thumbnails">Product Thumbnails</TabsTrigger>
             <TabsTrigger value="gallery">Gallery Images</TabsTrigger>
           </TabsList>
+
+          {/* Category Thumbnails Tab */}
+          <TabsContent value="categories" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Manage category thumbnails for Men, Women, and Kids sections
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={syncCategoriesToSiteImages}
+                disabled={syncing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                Sync to Site Images
+              </Button>
+            </div>
+
+            {categoriesLoading ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : categories.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-8 text-muted-foreground">
+                  No categories found. Add categories in the Categories page first.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {SECTION_ORDER.map((section) => {
+                  const sectionCategories = categoriesBySection[section] || [];
+                  if (sectionCategories.length === 0) return null;
+                  
+                  return (
+                    <Card key={section}>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">{SECTION_LABELS_MAP[section]}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {sectionCategories.length} categories • Click to change thumbnail
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
+                          {sectionCategories.map((category) => (
+                            <div
+                              key={category.id}
+                              className="group relative border rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                              onClick={() => openCategoryDialog(category)}
+                            >
+                              <div className="aspect-square">
+                                {category.thumbnail_url ? (
+                                  <img
+                                    src={category.thumbnail_url}
+                                    alt={category.display_name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-secondary text-muted-foreground">
+                                    <ImageIcon className="h-8 w-8 opacity-50" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-white text-sm font-medium">Change</span>
+                              </div>
+                              <div className="p-2">
+                                <p className="text-sm font-medium truncate">{category.display_name}</p>
+                                <p className="text-[10px] text-muted-foreground capitalize">{category.name}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
 
           {/* Site Images Tab */}
           <TabsContent value="site" className="space-y-4">
@@ -974,6 +1181,102 @@ export const AdminImages = () => {
 
               <Button onClick={handleUpdateSiteImage} className="w-full" disabled={uploading}>
                 {uploading ? 'Updating...' : 'Update Image'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Category Thumbnail Edit Dialog */}
+        <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Change Thumbnail: {selectedCategory?.display_name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground capitalize">Section: {selectedCategory?.section}</p>
+              </div>
+
+              {/* Current thumbnail */}
+              <div className="space-y-2">
+                <Label>Current Thumbnail</Label>
+                {selectedCategory?.thumbnail_url ? (
+                  <img
+                    src={selectedCategory.thumbnail_url}
+                    alt={selectedCategory.display_name}
+                    className="w-full max-h-40 object-contain rounded border"
+                  />
+                ) : (
+                  <div className="w-full h-40 flex items-center justify-center bg-secondary rounded border">
+                    <span className="text-xs text-muted-foreground uppercase">No image set</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Upload Type Toggle */}
+              <div className="space-y-2">
+                <Label>New Image Source</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={categoryUploadType === 'file' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCategoryUploadType('file')}
+                    className="flex-1"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload File
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={categoryUploadType === 'url' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCategoryUploadType('url')}
+                    className="flex-1"
+                  >
+                    <Link className="h-4 w-4 mr-2" />
+                    URL
+                  </Button>
+                </div>
+              </div>
+
+              {categoryUploadType === 'file' ? (
+                <div className="space-y-2">
+                  <input
+                    ref={categoryInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCategoryFileSelect}
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => categoryInputRef.current?.click()}
+                    className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                  >
+                    {categoryImagePreview ? (
+                      <img src={categoryImagePreview} alt="Preview" className="max-h-40 mx-auto rounded" />
+                    ) : (
+                      <div className="text-muted-foreground">
+                        <ImageIcon className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Click to select image from gallery</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="category_image_url">Image URL</Label>
+                  <Input
+                    id="category_image_url"
+                    value={categoryImageUrl}
+                    onChange={(e) => setCategoryImageUrl(e.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              <Button onClick={handleUpdateCategoryThumbnail} className="w-full" disabled={uploading}>
+                {uploading ? 'Updating...' : 'Update Thumbnail'}
               </Button>
             </div>
           </DialogContent>
