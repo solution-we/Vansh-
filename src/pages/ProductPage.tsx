@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useProduct } from '@/hooks/useProducts';
+import { useProductVariants, useProductImages } from '@/hooks/useProductVariants';
 import { SECTION_LABELS, CATEGORY_LABELS } from '@/lib/types';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { BuyNowDialog } from '@/components/product/BuyNowDialog';
@@ -18,38 +19,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 
-// Mock data for sizes - will be admin-controlled
-const CLOTHING_SIZES = [
-  { value: 'XS', label: 'XS', inStock: true },
-  { value: 'S', label: 'S', inStock: true },
-  { value: 'M', label: 'M', inStock: true },
-  { value: 'L', label: 'L', inStock: false },
-  { value: 'XL', label: 'XL', inStock: true },
-  { value: 'XXL', label: 'XXL', inStock: true },
-];
-
-const SHOE_SIZES = [
-  { value: '36', label: '36', inStock: false },
-  { value: '37', label: '37', inStock: true },
-  { value: '38', label: '38', inStock: true },
-  { value: '39', label: '39', inStock: true },
-  { value: '40', label: '40', inStock: true },
-  { value: '41', label: '41', inStock: true },
-  { value: '42', label: '42', inStock: false },
-  { value: '43', label: '43', inStock: true },
-  { value: '44', label: '44', inStock: true },
-  { value: '45', label: '45', inStock: false },
-];
-
-// Mock colors - will be admin-controlled
-const MOCK_COLORS = [
-  { value: 'black', label: 'Black', hex: '#1a1a1a', inStock: true },
-  { value: 'navy', label: 'Navy Blue', hex: '#1e3a5f', inStock: true },
-  { value: 'cream', label: 'Cream', hex: '#f5f5dc', inStock: true },
-  { value: 'charcoal', label: 'Charcoal', hex: '#36454f', inStock: false },
-];
-
-// Mock highlights - will come from product data
+// Product highlights based on category
 const getProductHighlights = (category: string) => {
   const baseHighlights = [
     { text: 'Premium quality fabric with superior finish' },
@@ -73,18 +43,29 @@ export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { product, loading, error } = useProduct(id || '');
+  const { sizes, colors, stockStatus, hasVariants, loading: variantsLoading } = useProductVariants(id || '');
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { isAuthenticated } = useAuthContext();
   
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>('black');
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [buyNowOpen, setBuyNowOpen] = useState(false);
 
-  // Determine stock status - will come from admin in real implementation
-  const [stockStatus] = useState<'in-stock' | 'low-stock' | 'out-of-stock'>('in-stock');
+  // Fetch product images based on selected color
+  const { imageUrls, hasImages, loading: imagesLoading } = useProductImages(id || '', selectedColor);
 
-  if (loading) {
+  // Set default color when colors are loaded
+  useEffect(() => {
+    if (colors.length > 0 && !selectedColor) {
+      const inStockColor = colors.find(c => c.inStock);
+      setSelectedColor(inStockColor?.value || colors[0].value);
+    }
+  }, [colors, selectedColor]);
+
+  const isLoading = loading || variantsLoading || imagesLoading;
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -108,18 +89,18 @@ export default function ProductPage() {
 
   const isFootwear = product.category === 'boots';
   const isClothing = ['pants', 'shirt', 't-shirt'].includes(product.category);
-  const showSizes = isFootwear || isClothing;
-  const showColors = isClothing || isFootwear;
-  const sizes = isFootwear ? SHOE_SIZES : CLOTHING_SIZES;
+  
+  // Show size/color selectors only if we have variants
+  const showSizes = hasVariants && sizes.length > 0;
+  const showColors = hasVariants && colors.length > 0;
+  
   const inWishlist = isInWishlist(product.id);
   const highlights = getProductHighlights(product.category);
 
-  // Generate multiple images for gallery (mock - will come from product data)
-  const productImages = [
-    product.image,
-    product.image, // In real app, these would be different angles
-    product.image,
-  ];
+  // Use product images from database, fallback to main product image
+  const productImages = hasImages && imageUrls.length > 0 
+    ? imageUrls 
+    : [product.image];
 
   const hasDiscount = product.original_price && product.original_price > product.price;
   const discountPercent = hasDiscount 
@@ -274,7 +255,7 @@ export default function ProductPage() {
               {/* Color Selection */}
               {showColors && (
                 <ColorSelector
-                  colors={MOCK_COLORS}
+                  colors={colors}
                   selectedColor={selectedColor}
                   onSelectColor={setSelectedColor}
                 />
