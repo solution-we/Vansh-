@@ -7,7 +7,7 @@ import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { useSiteImages } from '@/hooks/useSiteImages';
 
 
-};
+;
 
 export default function CategoriesPage() {
   const [searchOpen, setSearchOpen] = useState(false);
