@@ -170,16 +170,25 @@ export function useProductImages(productId: string, selectedColor?: string | nul
         // Get common images (always shown)
         const commonImages = images.filter(img => img.is_common);
         
+        // Normalize color for comparison
+        const normalizeColor = (color: string | null | undefined) => 
+          color?.toLowerCase().replace(/\s+/g, '-') || '';
+        
         // Get color-specific images
         const colorImages = selectedColor
           ? images.filter(img => 
               !img.is_common && 
-              img.color?.toLowerCase().replace(/\s+/g, '-') === selectedColor
+              normalizeColor(img.color) === normalizeColor(selectedColor)
             )
-          : images.filter(img => !img.is_common);
+          : [];
 
-        // Combine: color-specific first, then common
-        const combined = [...colorImages, ...commonImages];
+        // If no color-specific images found, get all non-common images
+        const fallbackImages = colorImages.length === 0 && !selectedColor
+          ? images.filter(img => !img.is_common)
+          : [];
+
+        // Combine: color-specific first, then common, then fallback
+        const combined = [...colorImages, ...commonImages, ...fallbackImages];
         
         // Return unique images by URL
         const seen = new Set<string>();
