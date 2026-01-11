@@ -4,8 +4,9 @@ import { Search } from 'lucide-react';
 import { Section, SECTION_LABELS } from '@/lib/types';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
+import { useSiteImages } from '@/hooks/useSiteImages';
 
-const SECTION_IMAGES: Record<Section, string> = {
+const DEFAULT_SECTION_IMAGES: Record<Section, string> = {
   men: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=600&h=800&fit=crop',
   women: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&h=800&fit=crop',
   kids: 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=600&h=800&fit=crop',
@@ -13,8 +14,14 @@ const SECTION_IMAGES: Record<Section, string> = {
 
 export default function CategoriesPage() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { images, loading } = useSiteImages('categories');
 
   const sections: Section[] = ['men', 'women', 'kids'];
+
+  const getSectionImage = (section: Section): string => {
+    const key = `section_${section}`;
+    return images[key] || DEFAULT_SECTION_IMAGES[section];
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -49,7 +56,7 @@ export default function CategoriesPage() {
             >
               <div className="aspect-[3/4] overflow-hidden bg-cream rounded-lg">
                 <img
-                  src={SECTION_IMAGES[section]}
+                  src={getSectionImage(section)}
                   alt={SECTION_LABELS[section]}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
