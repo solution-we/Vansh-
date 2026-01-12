@@ -27,16 +27,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, Shield, ShieldCheck, Search, UserPlus, Trash2 } from 'lucide-react';
+import { Users, Shield, ShieldCheck, Crown, Search, UserPlus, Trash2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
+
+type AppRole = 'admin' | 'user' | 'owner';
 
 interface UserWithRole {
   id: string;
   email: string;
   created_at: string;
-  role: 'admin' | 'user' | null;
+  role: AppRole | null;
   role_id: string | null;
 }
 
@@ -46,8 +49,30 @@ export const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
+  const [newRole, setNewRole] = useState<AppRole>('user');
   const [updating, setUpdating] = useState(false);
+  const { user: currentUser, isAdmin } = useAdminAuth();
+
+  // Get current user's role
+  const [currentUserRole, setCurrentUserRole] = useState<AppRole | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentUserRole = async () => {
+      if (!currentUser) return;
+      
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', currentUser.id)
+        .single();
+      
+      if (data) {
+        setCurrentUserRole(data.role as AppRole);
+      }
+    };
+    
+    fetchCurrentUserRole();
+  }, [currentUser]);
 
   const fetchUsers = async () => {
     try {
@@ -62,11 +87,10 @@ export const AdminUsers = () => {
 
       // Create a map of user_id to role info
       const roleMap = new Map(
-        rolesData?.map(r => [r.user_id, { role: r.role, role_id: r.id }]) || []
+        rolesData?.map(r => [r.user_id, { role: r.role as AppRole, role_id: r.id }]) || []
       );
 
-      // We need to get users from auth - but we can only see users who have roles or have interacted with the app
-      // For now, let's show users from various tables
+      // Get users from various tables
       const { data: cartUsers } = await supabase
         .from('cart_items')
         .select('user_id')
@@ -85,22 +109,19 @@ export const AdminUsers = () => {
       // Combine all unique user IDs
       const allUserIds = new Set<string>();
       
-      // Add users with roles
       rolesData?.forEach(r => allUserIds.add(r.user_id));
-      
-      // Add users from other tables
       cartUsers?.forEach(u => allUserIds.add(u.user_id));
       wishlistUsers?.forEach(u => allUserIds.add(u.user_id));
       addressUsers?.forEach(u => allUserIds.add(u.user_id));
 
-      // Build user list with available info
+      // Build user list
       const userList: UserWithRole[] = Array.from(allUserIds).map(userId => {
         const roleInfo = roleMap.get(userId);
         return {
           id: userId,
           email: `User ${userId.substring(0, 8)}...`,
           created_at: new Date().toISOString(),
-          role: roleInfo?.role as 'admin' | 'user' | null || null,
+          role: roleInfo?.role || null,
           role_id: roleInfo?.role_id || null,
         };
       });
@@ -118,14 +139,31 @@ export const AdminUsers = () => {
     fetchUsers();
   }, []);
 
+  const ownerCount = users.filter(u => u.role === 'owner').length;
+  const adminCount = users.filter(u => u.role === 'admin').length;
+  const userCount = users.filter(u => u.role === 'user' || !u.role).length;
+
+  // Check if current user can modify roles
+  const canModifyRoles = currentUserRole === 'owner';
+
   const handleOpenRoleDialog = (user: UserWithRole) => {
+    if (!canModifyRoles) {
+      toast.error('Only owners can modify user roles');
+      return;
+    }
     setSelectedUser(user);
     setNewRole(user.role || 'user');
     setShowRoleDialog(true);
   };
 
   const handleUpdateRole = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !canModifyRoles) return;
+
+    // Prevent creating more than 2 owners
+    if (newRole === 'owner' && ownerCount >= 2 && selectedUser.role !== 'owner') {
+      toast.error('Maximum of 2 owners allowed');
+      return;
+    }
 
     setUpdating(true);
     try {
@@ -158,7 +196,16 @@ export const AdminUsers = () => {
   };
 
   const handleRemoveRole = async (user: UserWithRole) => {
-    if (!user.role_id) return;
+    if (!user.role_id || !canModifyRoles) {
+      toast.error('Only owners can remove roles');
+      return;
+    }
+
+    // Prevent removing the last owner
+    if (user.role === 'owner' && ownerCount <= 1) {
+      toast.error('Cannot remove the last owner');
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -181,19 +228,54 @@ export const AdminUsers = () => {
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const adminCount = users.filter(u => u.role === 'admin').length;
-  const userCount = users.filter(u => u.role === 'user' || !u.role).length;
+  const getRoleBadge = (role: AppRole | null) => {
+    switch (role) {
+      case 'owner':
+        return (
+          <Badge variant="default" className="bg-gold text-foreground">
+            <Crown className="h-3 w-3 mr-1" />
+            Owner
+          </Badge>
+        );
+      case 'admin':
+        return (
+          <Badge variant="default" className="bg-primary">
+            <ShieldCheck className="h-3 w-3 mr-1" />
+            Admin
+          </Badge>
+        );
+      case 'user':
+        return (
+          <Badge variant="secondary">
+            <Shield className="h-3 w-3 mr-1" />
+            User
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">No Role</Badge>;
+    }
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">Manage users and their roles</p>
         </div>
 
+        {/* Permission Notice */}
+        {!canModifyRoles && (
+          <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <AlertCircle className="h-5 w-5 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              Only owners can modify user roles. You have read-only access.
+            </p>
+          </div>
+        )}
+
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -201,6 +283,16 @@ export const AdminUsers = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{users.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Owners</CardTitle>
+              <Crown className="h-4 w-4 text-gold" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{ownerCount}/2</div>
+              <p className="text-xs text-muted-foreground">Max 2 allowed</p>
             </CardContent>
           </Card>
           <Card>
@@ -223,7 +315,51 @@ export const AdminUsers = () => {
           </Card>
         </div>
 
-        {/* Search and Actions */}
+        {/* Role Permissions Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Role Permissions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div className="p-4 bg-gold/10 rounded-lg border border-gold/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Crown className="h-4 w-4 text-gold" />
+                  <span className="font-semibold">Owner</span>
+                </div>
+                <ul className="text-muted-foreground space-y-1">
+                  <li>• Full system access</li>
+                  <li>• Can assign/remove roles</li>
+                  <li>• Maximum 2 owners</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span className="font-semibold">Admin</span>
+                </div>
+                <ul className="text-muted-foreground space-y-1">
+                  <li>• Manage products & orders</li>
+                  <li>• Manage categories & content</li>
+                  <li>• Cannot modify roles</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-secondary rounded-lg border border-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-4 w-4" />
+                  <span className="font-semibold">User</span>
+                </div>
+                <ul className="text-muted-foreground space-y-1">
+                  <li>• Standard customer access</li>
+                  <li>• Can shop & manage orders</li>
+                  <li>• No admin access</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Search */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -267,37 +403,28 @@ export const AdminUsers = () => {
                     <TableRow key={user.id}>
                       <TableCell className="font-mono text-sm">
                         {user.id}
-                      </TableCell>
-                      <TableCell>
-                        {user.role === 'admin' ? (
-                          <Badge variant="default" className="bg-primary">
-                            <ShieldCheck className="h-3 w-3 mr-1" />
-                            Admin
-                          </Badge>
-                        ) : user.role === 'user' ? (
-                          <Badge variant="secondary">
-                            <Shield className="h-3 w-3 mr-1" />
-                            User
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">No Role</Badge>
+                        {user.id === currentUser?.id && (
+                          <Badge variant="outline" className="ml-2">You</Badge>
                         )}
                       </TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleOpenRoleDialog(user)}
+                            disabled={!canModifyRoles || user.id === currentUser?.id}
                           >
                             <UserPlus className="h-4 w-4 mr-1" />
                             {user.role ? 'Change Role' : 'Assign Role'}
                           </Button>
-                          {user.role && (
+                          {user.role && user.id !== currentUser?.id && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveRole(user)}
+                              disabled={!canModifyRoles}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -320,12 +447,12 @@ export const AdminUsers = () => {
                 {selectedUser?.role ? 'Change User Role' : 'Assign User Role'}
               </DialogTitle>
               <DialogDescription>
-                Select a role for this user. Admins have full access to the admin dashboard.
+                Select a role for this user. Only owners can modify roles.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <label className="text-sm font-medium mb-2 block">Role</label>
-              <Select value={newRole} onValueChange={(v) => setNewRole(v as 'admin' | 'user')}>
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -333,23 +460,40 @@ export const AdminUsers = () => {
                   <SelectItem value="user">
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4" />
-                      User
+                      User - Standard customer access
                     </div>
                   </SelectItem>
                   <SelectItem value="admin">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4" />
-                      Admin
+                      Admin - Full dashboard access (no role changes)
+                    </div>
+                  </SelectItem>
+                  <SelectItem 
+                    value="owner" 
+                    disabled={ownerCount >= 2 && selectedUser?.role !== 'owner'}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Crown className="h-4 w-4" />
+                      Owner - Full system access ({ownerCount}/2)
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
+              {newRole === 'owner' && ownerCount >= 2 && selectedUser?.role !== 'owner' && (
+                <p className="text-sm text-destructive mt-2">
+                  Maximum of 2 owners already reached
+                </p>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowRoleDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleUpdateRole} disabled={updating}>
+              <Button 
+                onClick={handleUpdateRole} 
+                disabled={updating || (newRole === 'owner' && ownerCount >= 2 && selectedUser?.role !== 'owner')}
+              >
                 {updating ? 'Updating...' : 'Save'}
               </Button>
             </DialogFooter>
