@@ -7,6 +7,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import vansheLogo from '@/assets/vanshe-logo.png';
 
 export default function WishlistPage() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -44,8 +45,9 @@ export default function WishlistPage() {
       <div className="min-h-screen bg-background pb-20">
         <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
           <nav className="container flex items-center justify-between h-nav">
-            <Link to="/" className="font-serif text-2xl md:text-3xl font-medium tracking-tight">
-              Vanshé
+            <Link to="/" className="flex items-center gap-2 font-serif text-2xl md:text-3xl font-medium tracking-tight">
+              <img src={vansheLogo} alt="Vanshé logo" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+              VANSHÉ
             </Link>
             <button
               onClick={() => setSearchOpen(true)}
@@ -83,8 +85,9 @@ export default function WishlistPage() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <nav className="container flex items-center justify-between h-nav">
-          <Link to="/" className="font-serif text-2xl md:text-3xl font-medium tracking-tight">
-            Vanshé
+          <Link to="/" className="flex items-center gap-2 font-serif text-2xl md:text-3xl font-medium tracking-tight">
+            <img src={vansheLogo} alt="Vanshé logo" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+            VANSHÉ
           </Link>
 
           <button
