@@ -18,6 +18,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import vansheLogo from '@/assets/vanshe-logo.png';
 
 // Product highlights based on category
 const getProductHighlights = (category: string) => {
@@ -117,7 +118,11 @@ export default function ProductPage() {
       toast.error('Please select a size');
       return;
     }
-    const success = await addToCart(product, selectedSize || undefined);
+    if (showColors && !selectedColor) {
+      toast.error('Please select a color');
+      return;
+    }
+    const success = await addToCart(product, selectedSize || undefined, selectedColor || undefined);
     if (success) {
       toast.success('Added to cart');
     } else {
@@ -169,8 +174,9 @@ export default function ProductPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          <Link to="/" className="font-serif text-2xl font-medium tracking-tight">
-            Vanshé
+          <Link to="/" className="flex items-center gap-2 font-serif text-2xl font-medium tracking-tight">
+            <img src={vansheLogo} alt="Vanshé logo" className="w-6 h-6 object-contain" />
+            VANSHÉ
           </Link>
 
           <div className="w-9" />
@@ -216,7 +222,7 @@ export default function ProductPage() {
                 {/* Brand & Category */}
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                    Vanshé
+                    VANSHÉ
                   </span>
                   <span className="text-muted-foreground/40">|</span>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -341,6 +347,16 @@ export default function ProductPage() {
         open={buyNowOpen} 
         onOpenChange={setBuyNowOpen} 
         productName={product.name}
+        platformLinks={{
+          amazon_link: product.amazon_link,
+          flipkart_link: product.flipkart_link,
+          meesho_link: (product as any).meesho_link,
+          vanshe_link: (product as any).vanshe_link,
+          amazon_enabled: (product as any).amazon_enabled,
+          flipkart_enabled: (product as any).flipkart_enabled,
+          meesho_enabled: (product as any).meesho_enabled,
+          vanshe_enabled: (product as any).vanshe_enabled,
+        }}
       />
     </div>
   );
