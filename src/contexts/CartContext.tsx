@@ -8,11 +8,12 @@ export interface CartItem {
   product: Product;
   quantity: number;
   size?: string;
+  color?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product, size?: string) => Promise<boolean>;
+  addToCart: (product: Product, size?: string, color?: string) => Promise<boolean>;
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -43,6 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           id,
           quantity,
           size,
+          color,
           product_id,
           products (
             id,
@@ -64,6 +66,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         id: item.id,
         quantity: item.quantity,
         size: item.size,
+        color: item.color,
         product: {
           id: item.products.id,
           name: item.products.name,
@@ -90,13 +93,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     fetchCartItems();
   }, [user]);
 
-  const addToCart = async (product: Product, size?: string): Promise<boolean> => {
+  const addToCart = async (product: Product, size?: string, color?: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      // Check if item already exists
+      // Check if item already exists with same size and color
       const existingItem = items.find(
-        item => item.product.id === product.id && item.size === size
+        item => item.product.id === product.id && item.size === size && item.color === color
       );
 
       if (existingItem) {
@@ -110,6 +113,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             product_id: product.id,
             quantity: 1,
             size: size || null,
+            color: color || null,
           });
 
         if (error) throw error;
