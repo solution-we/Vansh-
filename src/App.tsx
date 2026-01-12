@@ -33,6 +33,7 @@ import { AdminImages } from "./pages/admin/AdminImages";
 import { AdminProductImages } from "./pages/admin/AdminProductImages";
 import { AdminOrders } from "./pages/admin/AdminOrders";
 import { AdminUsers } from "./pages/admin/AdminUsers";
+import { AdminColors } from "./pages/admin/AdminColors";
 
 const queryClient = new QueryClient();
 
@@ -65,15 +66,16 @@ const App = () => (
                 <Route path="/admin/product-images" element={<AdminProtectedRoute><AdminProductImages /></AdminProtectedRoute>} />
                 <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
                 <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+                <Route path="/admin/colors" element={<AdminProtectedRoute><AdminColors /></AdminProtectedRoute>} />
+                
+                {/* Product detail - MUST be before /:section to avoid conflict */}
+                <Route path="/product/:id" element={<ProductPage />} />
                 
                 {/* Section pages */}
                 <Route path="/:section" element={<SectionPage />} />
                 
                 {/* Category pages */}
                 <Route path="/:section/:category" element={<CategoryPage />} />
-                
-                {/* Product detail */}
-                <Route path="/product/:id" element={<ProductPage />} />
                 
                 {/* Navigation pages */}
                 <Route path="/categories" element={<CategoriesPage />} />
