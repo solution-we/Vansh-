@@ -6,6 +6,12 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { useSiteImages } from '@/hooks/useSiteImages';
 
+const DEFAULT_SECTION_IMAGES: Record<Section, string> = {
+  men: 'https://wrexijzrdweumvlspdjd.supabase.co/storage/v1/object/public/product-images/gallery/1768147222580-70rfva.png',
+  women: 'https://wrexijzrdweumvlspdjd.supabase.co/storage/v1/object/public/product-images/gallery/1768137559937-6qnl4l.png',
+  kids: 'https://wrexijzrdweumvlspdjd.supabase.co/storage/v1/object/public/product-images/gallery/1768137573849-g4kcf5.png',
+};
+
 export default function CategoriesPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { images, loading } = useSiteImages('categories');
