@@ -1,15 +1,10 @@
-import { Shield, RotateCcw, BadgeCheck, Truck } from 'lucide-react';
+import { Shield, BadgeCheck, Truck } from 'lucide-react';
 
 const trustItems = [
   {
     icon: Shield,
     title: 'Secure Payment',
     description: '100% secure checkout'
-  },
-  {
-    icon: RotateCcw,
-    title: 'Easy Returns',
-    description: '15-day return policy'
   },
   {
     icon: BadgeCheck,
@@ -25,7 +20,7 @@ const trustItems = [
 
 export function TrustSignals() {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-3 gap-4">
       {trustItems.map((item) => (
         <div key={item.title} className="flex items-start gap-3">
           <div className="flex-shrink-0 w-9 h-9 bg-secondary rounded-full flex items-center justify-center">
