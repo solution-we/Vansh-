@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   Users,
   ShoppingBag,
-  FolderOpen
+  FolderOpen,
+  Paintbrush
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ const navItems = [
   { title: 'Products', href: '/admin/products', icon: Package },
   { title: 'Product Images', href: '/admin/product-images', icon: Images },
   { title: 'Categories', href: '/admin/categories', icon: FolderOpen },
+  { title: 'Common Colors', href: '/admin/colors', icon: Paintbrush },
   { title: 'Site Images', href: '/admin/images', icon: Image },
   { title: 'Variants', href: '/admin/variants', icon: Palette },
   { title: 'Orders', href: '/admin/orders', icon: ShoppingBag },
@@ -45,7 +47,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       {/* Sidebar */}
       <aside className="w-64 bg-background border-r flex flex-col">
         <div className="p-6 border-b">
-          <h1 className="text-xl font-semibold tracking-tight">Vanshé Admin</h1>
+          <h1 className="text-xl font-semibold tracking-tight">VANSHÉ Admin</h1>
           <p className="text-xs text-muted-foreground mt-1">Management Dashboard</p>
         </div>
 
