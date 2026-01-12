@@ -6,12 +6,6 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { useSiteImages } from '@/hooks/useSiteImages';
 
-const DEFAULT_SECTION_IMAGES: Record<Section, string> = {
-  men: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=600&h=800&fit=crop',
-  women: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&h=800&fit=crop',
-  kids: 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=600&h=800&fit=crop',
-};
-
 export default function CategoriesPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { images, loading } = useSiteImages('categories');
