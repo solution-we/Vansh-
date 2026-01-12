@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Minus, Plus, Trash2 } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
-import { useCart } from '@/contexts/CartContext';
+import { useCart, CartItem } from '@/contexts/CartContext';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { toast } from 'sonner';
+import vansheLogo from '@/assets/vanshe-logo.png';
 
 export default function CartPage() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -22,6 +24,40 @@ export default function CartPage() {
   const { items, removeFromCart, updateQuantity, totalPrice } = useCart();
   const { isAuthenticated } = useAuthContext();
   const navigate = useNavigate();
+  const [colorImages, setColorImages] = useState<Record<string, string>>({});
+
+  // Fetch color-specific images for cart items
+  useEffect(() => {
+    const fetchColorImages = async () => {
+      const productIds = items.map(item => item.product.id);
+      if (productIds.length === 0) return;
+
+      const { data } = await supabase
+        .from('product_images')
+        .select('product_id, color, image_url')
+        .in('product_id', productIds);
+
+      if (data) {
+        const imageMap: Record<string, string> = {};
+        data.forEach(img => {
+          if (img.color) {
+            imageMap[`${img.product_id}-${img.color}`] = img.image_url;
+          }
+        });
+        setColorImages(imageMap);
+      }
+    };
+
+    fetchColorImages();
+  }, [items]);
+
+  const getCartItemImage = (item: CartItem) => {
+    if (item.color) {
+      const colorImage = colorImages[`${item.product.id}-${item.color}`];
+      if (colorImage) return colorImage;
+    }
+    return item.product.image;
+  };
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
@@ -37,8 +73,9 @@ export default function CartPage() {
       <div className="min-h-screen bg-background pb-20">
         <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
           <nav className="container flex items-center justify-between h-nav">
-            <Link to="/" className="font-serif text-2xl md:text-3xl font-medium tracking-tight">
-              Vanshé
+            <Link to="/" className="flex items-center gap-2 font-serif text-2xl md:text-3xl font-medium tracking-tight">
+              <img src={vansheLogo} alt="Vanshé logo" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+              VANSHÉ
             </Link>
             <button
               onClick={() => setSearchOpen(true)}
@@ -76,8 +113,9 @@ export default function CartPage() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <nav className="container flex items-center justify-between h-nav">
-          <Link to="/" className="font-serif text-2xl md:text-3xl font-medium tracking-tight">
-            Vanshé
+          <Link to="/" className="flex items-center gap-2 font-serif text-2xl md:text-3xl font-medium tracking-tight">
+            <img src={vansheLogo} alt="Vanshé logo" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+            VANSHÉ
           </Link>
 
           <button
@@ -121,12 +159,12 @@ export default function CartPage() {
                   key={item.id}
                   className="flex gap-4 p-4 border border-border rounded-sm"
                 >
-                  {/* Product Image */}
+                  {/* Product Image - shows color-specific image if available */}
                   <Link to={`/product/${item.product.id}`} className="shrink-0">
                     <img
-                      src={item.product.image}
+                      src={getCartItemImage(item)}
                       alt={item.product.name}
-                      className="w-24 h-32 object-cover bg-cream"
+                      className="w-24 h-32 object-cover bg-cream premium-image"
                     />
                   </Link>
 
@@ -142,6 +180,11 @@ export default function CartPage() {
                       {item.size && (
                         <p className="text-sm text-muted-foreground mt-1">
                           Size: {item.size}
+                        </p>
+                      )}
+                      {item.color && (
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          Color: {item.color}
                         </p>
                       )}
                       <p className="font-medium mt-1">
