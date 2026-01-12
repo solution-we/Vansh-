@@ -110,7 +110,7 @@
   }
   
   .product-card {
-    @apply bg-card overflow-hidden transition-all duration-300;
+    @apply bg-card overflow-hidden transition-all duration-300 rounded-xl;
   }
   
   .product-card:hover {
@@ -118,7 +118,12 @@
   }
   
   .product-image {
-    @apply aspect-[3/4] w-full object-cover bg-muted;
+    @apply aspect-[3/4] w-full object-cover bg-muted rounded-xl;
+  }
+  
+  /* Global image styling - premium look */
+  .premium-image {
+    @apply rounded-xl border border-foreground/10;
   }
   
   .product-name {
