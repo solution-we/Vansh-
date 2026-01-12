@@ -27,61 +27,18 @@ interface BuyNowDialogProps {
   platformLinks?: PlatformLinks;
 }
 
-// Platform logo SVGs
-const AmazonLogo = () => (
-  <svg viewBox="0 0 100 30" className="w-full h-full">
-    <path
-      fill="#FF9900"
-      d="M58.5 23.5c-5.3 3.9-13 6-19.6 6-9.3 0-17.6-3.4-24-9.1-.5-.4-.1-1 .5-.7 6.8 4 15.3 6.4 24 6.4 5.9 0 12.3-1.2 18.3-3.7.9-.4 1.7.6.8 1.1z"
-    />
-    <path
-      fill="#FF9900"
-      d="M60.5 21.1c-.7-.9-4.4-.4-6.1-.2-.5.1-.6-.4-.1-.7 3-2.1 7.9-1.5 8.5-.8.6.7-.2 5.7-3 8.1-.4.4-.8.2-.6-.3.6-1.5 2-4.9 1.3-6.1z"
-    />
-    <path
-      fill="currentColor"
-      d="M54.5 3.5v-1.5c0-.2.2-.4.4-.4h7.1c.2 0 .4.2.4.4v1.3c0 .2-.2.5-.6.9l-3.7 5.3c1.4 0 2.8.2 4.1.9.3.2.4.4.4.6v1.6c0 .2-.3.5-.6.3-2.2-1.2-5.2-1.3-7.7.1-.3.1-.5-.1-.5-.3v-1.5c0-.3 0-.7.3-1.1l4.3-6.1h-3.7c-.2 0-.4-.2-.4-.4z"
-    />
-    <path
-      fill="currentColor"
-      d="M20.5 12.6h-2.2c-.2 0-.4-.2-.4-.4v-10c0-.2.2-.4.4-.4h2c.2 0 .4.2.4.4v1.3h.1c.5-1.3 1.6-1.9 3-1.9 1.5 0 2.4.6 3 1.9.5-1.3 1.7-1.9 3.1-1.9 1.4 0 2.9.6 2.9 2.8v7.9c0 .2-.2.4-.4.4h-2.2c-.2 0-.4-.2-.4-.4v-6.6c0-1.2-.5-2-1.5-2s-1.6.8-1.6 2v6.6c0 .2-.2.4-.4.4h-2.2c-.2 0-.4-.2-.4-.4v-6.6c0-1.2-.5-2-1.5-2s-1.6.8-1.6 2v6.6c0 .2-.2.4-.4.4z"
-    />
-    <path
-      fill="currentColor"
-      d="M44.5 1.6c3.3 0 5.1 2.8 5.1 6.4s-1.9 6.2-5.1 6.2c-3.3 0-5-2.8-5-6.3 0-3.6 1.8-6.3 5-6.3zm0 2.3c-1.7 0-1.8 2.3-1.8 3.7s-.1 4.4 1.8 4.4c1.8 0 1.9-2.4 1.9-3.9 0-.9 0-2.1-.3-3-.3-.8-.8-1.2-1.6-1.2z"
-    />
-    <path
-      fill="currentColor"
-      d="M12.5 8c0 .9.1 1.7-.4 2.5-.4.6-1.1 1-1.9 1-1.1 0-1.7-.8-1.7-2 0-2.3 2.1-2.7 4-2.7v1.2zm2.7 6.5c-.2.1-.4.2-.6.1-.8-.7-.9-1-1.4-1.6-1.3 1.3-2.2 1.7-3.9 1.7-2 0-3.5-1.2-3.5-3.7 0-1.9 1-3.2 2.5-3.9 1.3-.6 3-.7 4.4-.8v-.3c0-.6.1-1.2-.3-1.7-.3-.4-.9-.6-1.4-.6-1 0-1.9.5-2.1 1.5-.1.2-.2.5-.5.5l-2.1-.2c-.2 0-.4-.2-.4-.5.5-2.6 2.9-3.4 5.1-3.4 1.1 0 2.5.3 3.4 1.2 1.1 1 1 2.4 1 3.9v3.5c0 1.1.4 1.5.9 2.1.1.2.2.4 0 .6l-1.7 1.5z"
-    />
-  </svg>
-);
-
-const FlipkartLogo = () => (
-  <svg viewBox="0 0 100 24" className="w-full h-full">
-    <path
-      fill="#2874F0"
-      d="M10 0h80c5.5 0 10 4.5 10 10v4c0 5.5-4.5 10-10 10H10C4.5 24 0 19.5 0 14v-4C0 4.5 4.5 0 10 0z"
-    />
-    <text x="50" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold" fontFamily="Arial">
-      Flipkart
-    </text>
-  </svg>
-);
-
-const MeeshoLogo = () => (
-  <svg viewBox="0 0 100 24" className="w-full h-full">
-    <rect width="100" height="24" rx="4" fill="#F43397"/>
-    <text x="50" y="16" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="Arial">
-      Meesho
-    </text>
-  </svg>
-);
+// Platform logos using official images
+const PLATFORM_LOGOS = {
+  amazon: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+  flipkart: "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/flipkart-plus_8d85f4.png",
+  meesho: "https://images.meesho.com/images/pow/meeshoLogo_b.svg",
+};
 
 interface Platform {
   id: string;
   name: string;
-  logo: React.ReactNode;
+  logoUrl?: string;
+  logoComponent?: React.ReactNode;
   bgColor: string;
   link: string | null | undefined;
   enabled: boolean;
@@ -97,7 +54,7 @@ export function BuyNowDialog({ open, onOpenChange, productName, platformLinks }:
       {
         id: 'amazon',
         name: 'Amazon',
-        logo: <AmazonLogo />,
+        logoUrl: PLATFORM_LOGOS.amazon,
         bgColor: 'bg-white',
         link: platformLinks?.amazon_link || `https://www.amazon.in/s?k=${searchQuery}`,
         enabled: platformLinks?.amazon_enabled !== false,
@@ -105,15 +62,15 @@ export function BuyNowDialog({ open, onOpenChange, productName, platformLinks }:
       {
         id: 'flipkart',
         name: 'Flipkart',
-        logo: <FlipkartLogo />,
-        bgColor: 'bg-white',
+        logoUrl: PLATFORM_LOGOS.flipkart,
+        bgColor: 'bg-[#2874F0]',
         link: platformLinks?.flipkart_link || `https://www.flipkart.com/search?q=${searchQuery}`,
         enabled: platformLinks?.flipkart_enabled !== false,
       },
       {
         id: 'meesho',
         name: 'Meesho',
-        logo: <MeeshoLogo />,
+        logoUrl: PLATFORM_LOGOS.meesho,
         bgColor: 'bg-white',
         link: platformLinks?.meesho_link,
         enabled: platformLinks?.meesho_enabled !== false && !!platformLinks?.meesho_link,
@@ -121,10 +78,10 @@ export function BuyNowDialog({ open, onOpenChange, productName, platformLinks }:
       {
         id: 'vanshe',
         name: 'VANSHÉ',
-        logo: (
-          <div className="flex items-center justify-center gap-1">
-            <img src={vansheLogo} alt="VANSHÉ" className="h-5 w-5" />
-            <span className="font-serif text-xs font-semibold tracking-wider">VANSHÉ</span>
+        logoComponent: (
+          <div className="flex items-center justify-center gap-1.5">
+            <img src={vansheLogo} alt="VANSHÉ" className="h-6 w-6 object-contain" />
+            <span className="font-serif text-sm font-semibold tracking-wider">VANSHÉ</span>
           </div>
         ),
         bgColor: 'bg-foreground text-background',
@@ -196,8 +153,14 @@ export function BuyNowDialog({ open, onOpenChange, productName, platformLinks }:
                 )}
 
                 {/* Logo */}
-                <div className={`w-20 h-6 flex items-center justify-center ${platform.bgColor} rounded`}>
-                  {platform.logo}
+                <div className={`w-24 h-8 flex items-center justify-center ${platform.bgColor} rounded-lg p-1.5`}>
+                  {platform.logoUrl ? (
+                    <img 
+                      src={platform.logoUrl} 
+                      alt={platform.name} 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : platform.logoComponent}
                 </div>
 
                 {/* Platform name */}
