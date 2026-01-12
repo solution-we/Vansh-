@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
+import { NewArrivalsSection } from '@/components/home/NewArrivalsSection';
 import { Section, CATEGORIES, CATEGORY_LABELS, COLLECTION_NAMES } from '@/lib/types';
 import { useSiteImages } from '@/hooks/useSiteImages';
-
+import vansheLogo from '@/assets/vanshe-logo.png';
 const SECTION_TITLES: Record<Section, string> = {
   men: 'For Men',
   women: 'For Women',
@@ -42,7 +43,7 @@ function SectionBlock({ section, images }: { section: Section; images: Record<st
           {/* Model Image - Square */}
           <Link 
             to={`/${section}`}
-            className="block group h-full overflow-hidden bg-muted"
+            className="block group h-full overflow-hidden bg-muted rounded-xl border border-foreground/10"
           >
             {modelImage ? (
               <img
@@ -60,7 +61,7 @@ function SectionBlock({ section, images }: { section: Section; images: Record<st
           {/* Collection Banner - Wide landscape */}
           <Link 
             to={`/new-arrivals/${section}`}
-            className="block group h-full bg-charcoal relative overflow-hidden"
+            className="block group h-full bg-charcoal relative overflow-hidden rounded-xl border border-foreground/10"
           >
             {collectionImage ? (
               <img
@@ -98,9 +99,9 @@ function SectionBlock({ section, images }: { section: Section; images: Record<st
             <Link
               key={category}
               to={`/${section}/${category}`}
-              className="block group/cat transition-all duration-300 hover:shadow-lg hover:-translate-y-1 rounded-sm overflow-hidden"
-            >
-              <div className="aspect-square overflow-hidden bg-cream">
+            className="block group/cat transition-all duration-300 hover:shadow-lg hover:-translate-y-1 rounded-xl overflow-hidden"
+          >
+            <div className="aspect-square overflow-hidden bg-cream rounded-xl border border-foreground/10">
                 {categoryImage ? (
                   <img
                     src={categoryImage}
@@ -138,9 +139,38 @@ export default function Index() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <nav className="container flex items-center justify-between h-nav">
-          <Link to="/" className="font-serif text-2xl md:text-3xl font-medium tracking-tight">
-            Vanshé
+          <Link to="/" className="flex items-center gap-2 font-serif text-2xl md:text-3xl font-medium tracking-tight">
+            <img src={vansheLogo} alt="Vanshé logo" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+            VANSHÉ
           </Link>
+
+          {/* Desktop Navigation - Center */}
+          <div className="hidden md:flex items-center justify-center absolute left-1/2 -translate-x-1/2 gap-10">
+            <Link
+              to="/"
+              className="text-sm font-medium tracking-widest uppercase transition-colors duration-200 hover:text-foreground/70"
+            >
+              HOME
+            </Link>
+            <Link
+              to="/men"
+              className="text-sm font-medium tracking-widest uppercase transition-colors duration-200 hover:text-foreground/70"
+            >
+              MEN
+            </Link>
+            <Link
+              to="/women"
+              className="text-sm font-medium tracking-widest uppercase transition-colors duration-200 hover:text-foreground/70"
+            >
+              WOMEN
+            </Link>
+            <Link
+              to="/kids"
+              className="text-sm font-medium tracking-widest uppercase transition-colors duration-200 hover:text-foreground/70"
+            >
+              KIDS
+            </Link>
+          </div>
 
           <button
             onClick={() => setSearchOpen(true)}
@@ -154,9 +184,23 @@ export default function Index() {
 
       {/* Main Content - All sections on one page */}
       <main className="pt-nav space-y-12 py-8">
-        {sections.map((section) => (
-          <SectionBlock key={section} section={section} images={images} />
-        ))}
+        {/* Men Section */}
+        <SectionBlock section="men" images={images} />
+        
+        {/* Men's New Arrivals */}
+        <NewArrivalsSection section="men" />
+        
+        {/* Women Section */}
+        <SectionBlock section="women" images={images} />
+        
+        {/* Women's New Arrivals */}
+        <NewArrivalsSection section="women" />
+        
+        {/* Kids Section */}
+        <SectionBlock section="kids" images={images} />
+        
+        {/* Kids New Arrivals */}
+        <NewArrivalsSection section="kids" />
       </main>
 
       <BottomNav />
