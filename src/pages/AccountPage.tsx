@@ -5,6 +5,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import vansheLogo from '@/assets/vanshe-logo.png';
 
 const menuItems = [
   { icon: Package, label: 'My Orders', path: '/account/orders' },
@@ -62,8 +63,9 @@ export default function AccountPage() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <nav className="container flex items-center justify-center h-nav">
-          <Link to="/" className="font-serif text-2xl md:text-3xl font-medium tracking-tight">
-            Vanshé
+          <Link to="/" className="flex items-center gap-2 font-serif text-2xl md:text-3xl font-medium tracking-tight">
+            <img src={vansheLogo} alt="Vanshé logo" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+            VANSHÉ
           </Link>
         </nav>
       </header>
