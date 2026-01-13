@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { Section, CATEGORIES, CATEGORY_LABELS, SECTION_HERO_TITLES, COLLECTION_NAMES } from '@/lib/types';
+import { Section, SECTION_HERO_TITLES, COLLECTION_NAMES } from '@/lib/types';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { useSiteImages } from '@/hooks/useSiteImages';
+import { useCategories } from '@/hooks/useCategories';
+import { MobileNav } from '@/components/layout/MobileNav';
 import vansheLogo from '@/assets/vanshe-logo.png';
 
 export default function SectionPage() {
   const { section } = useParams<{ section: string }>();
   const [searchOpen, setSearchOpen] = useState(false);
   const { images } = useSiteImages(section);
+  const { categories, loading: categoriesLoading } = useCategories(section);
 
   if (!section || !['men', 'women', 'kids'].includes(section)) {
     return (
@@ -24,7 +27,6 @@ export default function SectionPage() {
   }
 
   const validSection = section as Section;
-  const categories = CATEGORIES[validSection];
 
   const getImageOrPlaceholder = (key: string) => {
     const url = images[key];
@@ -44,12 +46,18 @@ export default function SectionPage() {
             VANSHÉ
           </Link>
 
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="p-2 hover:bg-secondary rounded-full transition-colors"
-          >
-            <Search className="w-5 h-5" />
-          </button>
+          {/* Right Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 hover:bg-secondary rounded-full transition-colors"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            
+            {/* Mobile Menu Button */}
+            <MobileNav onSearchOpen={() => setSearchOpen(true)} />
+          </div>
         </nav>
       </header>
 
@@ -110,37 +118,56 @@ export default function SectionPage() {
 
         {/* Category Grid - 4 columns with hover effects */}
         <div className="px-4 grid grid-cols-4 gap-3">
-          {categories.map((category) => {
-            const categoryImage = getImageOrPlaceholder(`${validSection}_${category.replace('-', '')}`);
-            
-            return (
-              <Link
-                key={category}
-                to={`/${validSection}/${category}`}
-                className="block group/cat transition-all duration-300 hover:shadow-lg hover:-translate-y-1 rounded-sm overflow-hidden"
-              >
-                <div className="aspect-square overflow-hidden bg-cream">
-                  {categoryImage ? (
-                    <img
-                      src={categoryImage}
-                      alt={CATEGORY_LABELS[category]}
-                      className="w-full h-full object-cover group-hover/cat:scale-110 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-secondary text-muted-foreground text-center p-2">
-                      <span className="text-[8px] md:text-[10px] uppercase tracking-wider">{validSection.toUpperCase()} – {CATEGORY_LABELS[category].toUpperCase()}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2 text-center">
-                  <span className="inline-block px-2 py-0.5 bg-foreground text-background text-[8px] md:text-[9px] font-medium uppercase tracking-wider transition-all duration-300 group-hover/cat:bg-primary group-hover/cat:text-primary-foreground">
-                    {CATEGORY_LABELS[category]}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+          {categoriesLoading ? (
+            // Loading skeleton
+            [1, 2, 3, 4].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-secondary rounded-sm" />
+                <div className="mt-2 h-5 w-16 bg-secondary rounded mx-auto" />
+              </div>
+            ))
+          ) : (
+            categories.map((category) => {
+              const categoryImage = getImageOrPlaceholder(`${validSection}_${category.name.replace('-', '')}`);
+              
+              return (
+                <Link
+                  key={category.id}
+                  to={`/${validSection}/${category.name}`}
+                  className="block group/cat transition-all duration-300 hover:shadow-lg hover:-translate-y-1 rounded-sm overflow-hidden"
+                >
+                  <div className="aspect-square overflow-hidden bg-cream">
+                    {categoryImage ? (
+                      <img
+                        src={categoryImage}
+                        alt={category.display_name}
+                        className="w-full h-full object-cover group-hover/cat:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : category.thumbnail_url ? (
+                      <img
+                        src={category.thumbnail_url}
+                        alt={category.display_name}
+                        className="w-full h-full object-cover group-hover/cat:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-secondary text-muted-foreground text-center p-2">
+                        <span className="text-[8px] md:text-[10px] uppercase tracking-wider">
+                          {validSection.toUpperCase()} – {category.display_name.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2 text-center">
+                    <span className="inline-block px-2 py-0.5 bg-foreground text-background text-[8px] md:text-[9px] font-medium uppercase tracking-wider transition-all duration-300 group-hover/cat:bg-primary group-hover/cat:text-primary-foreground">
+                      {category.display_name}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })
+          )}
         </div>
       </main>
 
