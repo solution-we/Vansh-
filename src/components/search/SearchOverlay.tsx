@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Search } from 'lucide-react';
 import { useSearchProducts } from '@/hooks/useProducts';
-import { SECTION_LABELS, CATEGORY_LABELS } from '@/lib/types';
+import { SECTION_LABELS } from '@/lib/types';
+import { useAllCategories } from '@/hooks/useCategories';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface SearchOverlayProps {
 export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [query, setQuery] = useState('');
   const { results, loading } = useSearchProducts(query);
+  const { getCategoryLabel } = useAllCategories();
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -89,7 +91,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{product.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {SECTION_LABELS[product.section]} • {CATEGORY_LABELS[product.category]}
+                  {SECTION_LABELS[product.section]} • {getCategoryLabel(product.category)}
                 </p>
                 <p className="text-sm font-medium mt-1">₹{product.price.toLocaleString()}</p>
               </div>
