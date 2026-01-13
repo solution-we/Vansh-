@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, Menu } from 'lucide-react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { NewArrivalsSection } from '@/components/home/NewArrivalsSection';
-import { Section, CATEGORIES, CATEGORY_LABELS, COLLECTION_NAMES } from '@/lib/types';
+import { Section, COLLECTION_NAMES, SECTION_LABELS } from '@/lib/types';
 import { useSiteImages } from '@/hooks/useSiteImages';
+import { useCategories } from '@/hooks/useCategories';
+import { MobileNav } from '@/components/layout/MobileNav';
 import vansheLogo from '@/assets/vanshe-logo.png';
+
 const SECTION_TITLES: Record<Section, string> = {
   men: 'For Men',
   women: 'For Women',
@@ -20,7 +23,7 @@ const ATELIER_TITLES: Record<Section, string> = {
 };
 
 function SectionBlock({ section, images }: { section: Section; images: Record<string, string> }) {
-  const categories = CATEGORIES[section];
+  const { categories, loading } = useCategories(section);
 
   const getImageOrPlaceholder = (key: string, placeholderText: string) => {
     const url = images[key];
@@ -92,37 +95,59 @@ function SectionBlock({ section, images }: { section: Section; images: Record<st
 
       {/* Category Grid - 4 columns with hover effects */}
       <div className="px-4 grid grid-cols-4 gap-3">
-        {categories.map((category) => {
-          const categoryImage = getImageOrPlaceholder(`home_${section}_${category.replace('-', '')}`, `${section.toUpperCase()} – ${CATEGORY_LABELS[category].toUpperCase()}`);
-          
-          return (
-            <Link
-              key={category}
-              to={`/${section}/${category}`}
-            className="block group/cat transition-all duration-300 hover:shadow-lg hover:-translate-y-1 rounded-xl overflow-hidden"
-          >
-            <div className="aspect-square overflow-hidden bg-cream rounded-xl border border-foreground/10">
-                {categoryImage ? (
-                  <img
-                    src={categoryImage}
-                    alt={CATEGORY_LABELS[category]}
-                    className="w-full h-full object-cover group-hover/cat:scale-110 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-secondary text-muted-foreground text-center p-2">
-                    <span className="text-[8px] md:text-[10px] uppercase tracking-wider">{section.toUpperCase()} – {CATEGORY_LABELS[category].toUpperCase()}</span>
-                  </div>
-                )}
-              </div>
-              <div className="mt-2 text-center">
-                <span className="inline-block px-2 py-0.5 bg-foreground text-background text-[8px] md:text-[9px] font-medium uppercase tracking-wider transition-all duration-300 group-hover/cat:bg-primary group-hover/cat:text-primary-foreground">
-                  {CATEGORY_LABELS[category]}
-                </span>
-              </div>
-            </Link>
-          );
-        })}
+        {loading ? (
+          // Loading skeleton
+          [1, 2, 3, 4].map((i) => (
+            <div key={i} className="animate-pulse">
+              <div className="aspect-square bg-secondary rounded-xl" />
+              <div className="mt-2 h-5 w-16 bg-secondary rounded mx-auto" />
+            </div>
+          ))
+        ) : (
+          categories.map((category) => {
+            const categoryImage = getImageOrPlaceholder(
+              `home_${section}_${category.name.replace('-', '')}`, 
+              `${section.toUpperCase()} – ${category.display_name.toUpperCase()}`
+            );
+            
+            return (
+              <Link
+                key={category.id}
+                to={`/${section}/${category.name}`}
+                className="block group/cat transition-all duration-300 hover:shadow-lg hover:-translate-y-1 rounded-xl overflow-hidden"
+              >
+                <div className="aspect-square overflow-hidden bg-cream rounded-xl border border-foreground/10">
+                  {categoryImage ? (
+                    <img
+                      src={categoryImage}
+                      alt={category.display_name}
+                      className="w-full h-full object-cover group-hover/cat:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  ) : category.thumbnail_url ? (
+                    <img
+                      src={category.thumbnail_url}
+                      alt={category.display_name}
+                      className="w-full h-full object-cover group-hover/cat:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-secondary text-muted-foreground text-center p-2">
+                      <span className="text-[8px] md:text-[10px] uppercase tracking-wider">
+                        {section.toUpperCase()} – {category.display_name.toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 text-center">
+                  <span className="inline-block px-2 py-0.5 bg-foreground text-background text-[8px] md:text-[9px] font-medium uppercase tracking-wider transition-all duration-300 group-hover/cat:bg-primary group-hover/cat:text-primary-foreground">
+                    {category.display_name}
+                  </span>
+                </div>
+              </Link>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -172,13 +197,19 @@ export default function Index() {
             </Link>
           </div>
 
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="p-2 hover:bg-secondary rounded-full transition-colors"
-            aria-label="Search"
-          >
-            <Search className="w-5 h-5" />
-          </button>
+          {/* Right Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 hover:bg-secondary rounded-full transition-colors"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            
+            {/* Mobile Menu Button */}
+            <MobileNav onSearchOpen={() => setSearchOpen(true)} />
+          </div>
         </nav>
       </header>
 
