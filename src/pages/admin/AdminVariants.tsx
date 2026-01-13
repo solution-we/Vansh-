@@ -25,9 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Pencil, Trash2, Search, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCommonColors } from '@/hooks/useCommonColors';
 
 interface Product {
   id: string;
@@ -62,6 +64,8 @@ export const AdminVariants = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<Variant | null>(null);
   const [formData, setFormData] = useState(initialFormState);
+  const [colorMode, setColorMode] = useState<'common' | 'custom'>('common');
+  const { colors: commonColors, loading: colorsLoading } = useCommonColors();
 
   useEffect(() => {
     fetchVariants();
@@ -244,35 +248,93 @@ export const AdminVariants = () => {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="color">Color Name</Label>
-                    <Input
-                      id="color"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      placeholder="e.g., Black, White"
-                      required
-                    />
+                {/* Color Selection */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Palette className="h-4 w-4 text-muted-foreground" />
+                    <Label className="font-medium">Color</Label>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="color_hex">Color</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="color_hex"
-                        type="color"
-                        value={formData.color_hex}
-                        onChange={(e) => setFormData({ ...formData, color_hex: e.target.value })}
-                        className="w-12 h-10 p-1"
+                  
+                  <Tabs value={colorMode} onValueChange={(v) => setColorMode(v as 'common' | 'custom')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="common">Common Colors</TabsTrigger>
+                      <TabsTrigger value="custom">Custom Color</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="common" className="space-y-3 mt-3">
+                      {colorsLoading ? (
+                        <p className="text-sm text-muted-foreground">Loading colors...</p>
+                      ) : commonColors.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No common colors defined. Add them in Admin → Colors.</p>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2">
+                          {commonColors.map((cc) => (
+                            <button
+                              key={cc.id}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, color: cc.name, color_hex: cc.hex_code })}
+                              className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all ${
+                                formData.color === cc.name && formData.color_hex === cc.hex_code
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-transparent hover:border-muted-foreground/30'
+                              }`}
+                            >
+                              <div
+                                className="w-8 h-8 rounded-full border shadow-sm"
+                                style={{ backgroundColor: cc.hex_code }}
+                              />
+                              <span className="text-xs text-center truncate w-full">{cc.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="custom" className="space-y-3 mt-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="color">Color Name</Label>
+                          <Input
+                            id="color"
+                            value={formData.color}
+                            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                            placeholder="e.g., Black, White"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="color_hex">Color</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="color_hex"
+                              type="color"
+                              value={formData.color_hex}
+                              onChange={(e) => setFormData({ ...formData, color_hex: e.target.value })}
+                              className="w-12 h-10 p-1"
+                            />
+                            <Input
+                              value={formData.color_hex}
+                              onChange={(e) => setFormData({ ...formData, color_hex: e.target.value })}
+                              placeholder="#000000"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                  
+                  {/* Selected Color Preview */}
+                  {formData.color && (
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                      <div
+                        className="w-6 h-6 rounded-full border"
+                        style={{ backgroundColor: formData.color_hex }}
                       />
-                      <Input
-                        value={formData.color_hex}
-                        onChange={(e) => setFormData({ ...formData, color_hex: e.target.value })}
-                        placeholder="#000000"
-                        className="flex-1"
-                      />
+                      <span className="text-sm font-medium">{formData.color}</span>
+                      <span className="text-xs text-muted-foreground">{formData.color_hex}</span>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <input
