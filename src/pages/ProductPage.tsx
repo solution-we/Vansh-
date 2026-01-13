@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useProduct } from '@/hooks/useProducts';
 import { useProductVariants, useProductImages } from '@/hooks/useProductVariants';
-import { SECTION_LABELS, CATEGORY_LABELS } from '@/lib/types';
+import { SECTION_LABELS } from '@/lib/types';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { BuyNowDialog } from '@/components/product/BuyNowDialog';
 import { ProductImageGallery } from '@/components/product/ProductImageGallery';
@@ -16,6 +16,7 @@ import { StockBadge } from '@/components/product/StockBadge';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAllCategories } from '@/hooks/useCategories';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import vansheLogo from '@/assets/vanshe-logo.png';
@@ -45,6 +46,7 @@ export default function ProductPage() {
   const navigate = useNavigate();
   const { product, loading, error } = useProduct(id || '');
   const { sizes, colors, stockStatus, hasVariants, loading: variantsLoading } = useProductVariants(id || '');
+  const { getCategoryLabel } = useAllCategories();
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { isAuthenticated } = useAuthContext();
@@ -88,9 +90,6 @@ export default function ProductPage() {
     );
   }
 
-  const isFootwear = product.category === 'boots';
-  const isClothing = ['pants', 'shirt', 't-shirt'].includes(product.category);
-  
   // Show size/color selectors only if we have variants
   const showSizes = hasVariants && sizes.length > 0;
   const showColors = hasVariants && colors.length > 0;
@@ -107,6 +106,11 @@ export default function ProductPage() {
   const discountPercent = hasDiscount 
     ? Math.round(((product.original_price! - product.price) / product.original_price!) * 100)
     : 0;
+
+  // Check if Buy Now is enabled for this product
+  const showBuyNow = (product as any).buy_now_enabled !== false;
+
+  const categoryLabel = getCategoryLabel(product.category);
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -207,7 +211,7 @@ export default function ProductPage() {
                   to={`/${product.section}/${product.category}`} 
                   className="hover:text-foreground transition-colors"
                 >
-                  {CATEGORY_LABELS[product.category]}
+                  {categoryLabel}
                 </Link>
                 {product.sub_type && (
                   <>
@@ -226,7 +230,7 @@ export default function ProductPage() {
                   </span>
                   <span className="text-muted-foreground/40">|</span>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {SECTION_LABELS[product.section]}'s {CATEGORY_LABELS[product.category]}
+                    {SECTION_LABELS[product.section]}'s {categoryLabel}
                   </span>
                 </div>
 
@@ -286,6 +290,7 @@ export default function ProductPage() {
                   onWishlistToggle={handleWishlistToggle}
                   inWishlist={inWishlist}
                   disabled={stockStatus === 'out-of-stock'}
+                  showBuyNow={showBuyNow}
                 />
               </div>
 
@@ -301,7 +306,7 @@ export default function ProductPage() {
 
               <Separator className="my-6" />
 
-              {/* Product Details Accordion */}
+              {/* Product Details */}
               <div className="space-y-4">
                 <h3 className="text-sm font-medium uppercase tracking-wider">
                   Product Details
@@ -316,7 +321,7 @@ export default function ProductPage() {
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
                       <span className="text-foreground font-medium">Category</span>
-                      <p className="capitalize mt-0.5">{CATEGORY_LABELS[product.category]}</p>
+                      <p className="capitalize mt-0.5">{categoryLabel}</p>
                     </div>
                     {product.sub_type && (
                       <div>
