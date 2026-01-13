@@ -1,13 +1,16 @@
 // Supabase types and constants - use supabase client from @/integrations/supabase/client
 
 export type Section = 'men' | 'women' | 'kids';
-export type Category = 'pants' | 'shirt' | 't-shirt' | 'boots' | 'accessories' | 'perfumes' | 'toys';
+
+// Category type is now dynamic - fetched from database
+// These are kept for backward compatibility but the app now uses database categories
+export type Category = string;
 
 export interface Product {
   id: string;
   name: string;
   section: Section;
-  category: Category;
+  category: string;
   sub_type: string | null;
   price: number;
   original_price: number | null;
@@ -16,25 +19,26 @@ export interface Product {
   created_at: string;
   flipkart_link?: string | null;
   amazon_link?: string | null;
+  meesho_link?: string | null;
+  vanshe_link?: string | null;
+  amazon_enabled?: boolean;
+  flipkart_enabled?: boolean;
+  meesho_enabled?: boolean;
+  vanshe_enabled?: boolean;
+  buy_now_enabled?: boolean;
 }
 
 export const SECTIONS: Section[] = ['men', 'women', 'kids'];
 
-export const CATEGORIES: Record<Section, Category[]> = {
-  men: ['pants', 'shirt', 't-shirt', 'boots', 'accessories', 'perfumes'],
-  women: ['pants', 'shirt', 't-shirt', 'boots', 'accessories', 'perfumes'],
-  kids: ['pants', 'shirt', 't-shirt', 'boots', 'accessories', 'toys'],
+// Legacy CATEGORIES and CATEGORY_LABELS - now dynamic from database
+// Kept for backward compatibility, these serve as fallbacks
+export const CATEGORIES: Record<Section, string[]> = {
+  men: [],
+  women: [],
+  kids: [],
 };
 
-export const CATEGORY_LABELS: Record<Category, string> = {
-  pants: 'Pants',
-  shirt: 'Shirts',
-  't-shirt': 'T-Shirts',
-  boots: 'Boots',
-  accessories: 'Accessories',
-  perfumes: 'Perfumes',
-  toys: 'Toys',
-};
+export const CATEGORY_LABELS: Record<string, string> = {};
 
 export const SECTION_LABELS: Record<Section, string> = {
   men: 'Men',
