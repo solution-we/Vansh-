@@ -39,8 +39,16 @@ interface UserWithRole {
   id: string;
   email: string;
   created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+  phone: string | null;
   role: AppRole | null;
   role_id: string | null;
+  user_metadata: {
+    full_name?: string;
+    name?: string;
+    [key: string]: any;
+  } | null;
 }
 
 export const AdminUsers = () => {
@@ -78,55 +86,26 @@ export const AdminUsers = () => {
     try {
       setLoading(true);
       
-      // Fetch all user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
 
-      if (rolesError) throw rolesError;
-
-      // Create a map of user_id to role info
-      const roleMap = new Map(
-        rolesData?.map(r => [r.user_id, { role: r.role as AppRole, role_id: r.id }]) || []
-      );
-
-      // Get users from various tables
-      const { data: cartUsers } = await supabase
-        .from('cart_items')
-        .select('user_id')
-        .limit(100);
-
-      const { data: wishlistUsers } = await supabase
-        .from('wishlist_items')
-        .select('user_id')
-        .limit(100);
-
-      const { data: addressUsers } = await supabase
-        .from('user_addresses')
-        .select('user_id')
-        .limit(100);
-
-      // Combine all unique user IDs
-      const allUserIds = new Set<string>();
-      
-      rolesData?.forEach(r => allUserIds.add(r.user_id));
-      cartUsers?.forEach(u => allUserIds.add(u.user_id));
-      wishlistUsers?.forEach(u => allUserIds.add(u.user_id));
-      addressUsers?.forEach(u => allUserIds.add(u.user_id));
-
-      // Build user list
-      const userList: UserWithRole[] = Array.from(allUserIds).map(userId => {
-        const roleInfo = roleMap.get(userId);
-        return {
-          id: userId,
-          email: `User ${userId.substring(0, 8)}...`,
-          created_at: new Date().toISOString(),
-          role: roleInfo?.role || null,
-          role_id: roleInfo?.role_id || null,
-        };
+      // Call edge function to get all users
+      const response = await supabase.functions.invoke('get-all-users', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
-      setUsers(userList);
+      if (response.error) {
+        throw response.error;
+      }
+
+      if (response.data?.users) {
+        setUsers(response.data.users);
+      }
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -223,10 +202,19 @@ export const AdminUsers = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getUserDisplayName = (user: UserWithRole) => {
+    return user.user_metadata?.full_name || user.user_metadata?.name || null;
+  };
+
+  const filteredUsers = users.filter(user => {
+    const query = searchQuery.toLowerCase();
+    const name = getUserDisplayName(user)?.toLowerCase() || '';
+    return (
+      user.id.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      name.includes(query)
+    );
+  });
 
   const getRoleBadge = (role: AppRole | null) => {
     switch (role) {
@@ -393,21 +381,45 @@ export const AdminUsers = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User ID</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Last Active</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-mono text-sm">
-                        {user.id}
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {getUserDisplayName(user) || 'No name'}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {user.id.substring(0, 8)}...
+                          </span>
+                        </div>
                         {user.id === currentUser?.id && (
-                          <Badge variant="outline" className="ml-2">You</Badge>
+                          <Badge variant="outline" className="mt-1">You</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{user.email}</span>
+                        {user.email_confirmed_at && (
+                          <Badge variant="secondary" className="ml-2 text-xs">Verified</Badge>
                         )}
                       </TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {user.created_at ? format(new Date(user.created_at), 'MMM d, yyyy') : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {user.last_sign_in_at 
+                          ? format(new Date(user.last_sign_in_at), 'MMM d, yyyy h:mm a')
+                          : 'Never'}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
