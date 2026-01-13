@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface Category {
+export interface CategoryData {
   id: string;
   name: string;
   display_name: string;
@@ -10,15 +10,12 @@ export interface Category {
 }
 
 export const useCategories = (section?: string) => {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCategories();
-  }, [section]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
+      setLoading(true);
       let query = supabase
         .from('categories')
         .select('*')
@@ -36,42 +33,100 @@ export const useCategories = (section?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [section]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const refetch = () => {
-    setLoading(true);
     fetchCategories();
   };
 
-  return { categories, loading, refetch };
+  // Helper to get category display name
+  const getCategoryLabel = (categoryName: string): string => {
+    const category = categories.find(c => c.name === categoryName);
+    return category?.display_name || categoryName.charAt(0).toUpperCase() + categoryName.slice(1).replace(/-/g, ' ');
+  };
+
+  // Get category names for a section
+  const getCategoryNames = (): string[] => {
+    return categories.map(c => c.name);
+  };
+
+  return { categories, loading, refetch, getCategoryLabel, getCategoryNames };
 };
 
 export const useAllCategories = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchAllCategories = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('section')
+        .order('display_name');
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAllCategories = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .order('section')
-          .order('display_name');
-
-        if (error) throw error;
-        setCategories(data || []);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAllCategories();
   }, []);
 
-  return { categories, loading };
+  const refetch = () => {
+    fetchAllCategories();
+  };
+
+  // Get all category labels as a map
+  const getCategoryLabels = (): Record<string, string> => {
+    const labels: Record<string, string> = {};
+    categories.forEach(c => {
+      labels[c.name] = c.display_name;
+    });
+    return labels;
+  };
+
+  // Get categories for a specific section
+  const getCategoriesForSection = (section: string): CategoryData[] => {
+    return categories.filter(c => c.section === section);
+  };
+
+  // Get category names for a section
+  const getCategoryNamesForSection = (section: string): string[] => {
+    return categories.filter(c => c.section === section).map(c => c.name);
+  };
+
+  // Get category display name
+  const getCategoryLabel = (categoryName: string): string => {
+    const category = categories.find(c => c.name === categoryName);
+    return category?.display_name || categoryName.charAt(0).toUpperCase() + categoryName.slice(1).replace(/-/g, ' ');
+  };
+
+  // Check if a category exists in a section
+  const categoryExistsInSection = (section: string, categoryName: string): boolean => {
+    return categories.some(c => c.section === section && c.name === categoryName);
+  };
+
+  return { 
+    categories, 
+    loading, 
+    refetch, 
+    getCategoryLabels, 
+    getCategoriesForSection,
+    getCategoryNamesForSection,
+    getCategoryLabel,
+    categoryExistsInSection
+  };
 };
 
 // Get unique category names for dropdowns (across all sections)
