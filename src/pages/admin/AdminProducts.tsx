@@ -53,6 +53,7 @@ interface Product {
   flipkart_enabled: boolean;
   meesho_enabled: boolean;
   vanshe_enabled: boolean;
+  buy_now_enabled: boolean;
 }
 
 const initialFormState = {
@@ -72,6 +73,7 @@ const initialFormState = {
   flipkart_enabled: true,
   meesho_enabled: true,
   vanshe_enabled: true,
+  buy_now_enabled: true,
 };
 
 export const AdminProducts = () => {
@@ -110,6 +112,7 @@ export const AdminProducts = () => {
         flipkart_enabled: p.flipkart_enabled ?? true,
         meesho_enabled: p.meesho_enabled ?? true,
         vanshe_enabled: p.vanshe_enabled ?? true,
+        buy_now_enabled: p.buy_now_enabled ?? true,
       })));
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -204,6 +207,7 @@ export const AdminProducts = () => {
         flipkart_enabled: formData.flipkart_enabled,
         meesho_enabled: formData.meesho_enabled,
         vanshe_enabled: formData.vanshe_enabled,
+        buy_now_enabled: formData.buy_now_enabled,
       };
 
       if (editingProduct) {
@@ -258,6 +262,7 @@ export const AdminProducts = () => {
       flipkart_enabled: product.flipkart_enabled,
       meesho_enabled: product.meesho_enabled,
       vanshe_enabled: product.vanshe_enabled,
+      buy_now_enabled: product.buy_now_enabled,
     });
     setPreviewUrl(product.image);
     setIsDialogOpen(true);
@@ -405,6 +410,19 @@ export const AdminProducts = () => {
                       className="rounded border-gray-300"
                     />
                     <Label htmlFor="is_new">Mark as New Arrival</Label>
+                  </div>
+                  
+                  {/* Buy Now Toggle */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                    <div>
+                      <Label htmlFor="buy_now" className="font-medium">Enable Buy Now</Label>
+                      <p className="text-xs text-muted-foreground">Show Buy Now button on product page</p>
+                    </div>
+                    <Switch
+                      id="buy_now"
+                      checked={formData.buy_now_enabled}
+                      onCheckedChange={(checked) => setFormData({ ...formData, buy_now_enabled: checked })}
+                    />
                   </div>
                 </div>
 
