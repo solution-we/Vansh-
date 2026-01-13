@@ -7,6 +7,7 @@ interface ProductActionsProps {
   onWishlistToggle: () => void;
   inWishlist: boolean;
   disabled?: boolean;
+  showBuyNow?: boolean;
 }
 
 export function ProductActions({ 
@@ -14,24 +15,27 @@ export function ProductActions({
   onBuyNow, 
   onWishlistToggle, 
   inWishlist,
-  disabled = false 
+  disabled = false,
+  showBuyNow = true
 }: ProductActionsProps) {
   return (
     <div className="space-y-3">
       {/* Buy Now - Primary Action */}
-      <button 
-        onClick={onBuyNow}
-        disabled={disabled}
-        className={cn(
-          "w-full h-14 bg-primary text-primary-foreground font-medium uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2",
-          disabled 
-            ? "opacity-50 cursor-not-allowed" 
-            : "hover:bg-primary/90 active:scale-[0.99]"
-        )}
-      >
-        <Zap className="w-4 h-4" />
-        Buy Now
-      </button>
+      {showBuyNow && (
+        <button 
+          onClick={onBuyNow}
+          disabled={disabled}
+          className={cn(
+            "w-full h-14 bg-primary text-primary-foreground font-medium uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2",
+            disabled 
+              ? "opacity-50 cursor-not-allowed" 
+              : "hover:bg-primary/90 active:scale-[0.99]"
+          )}
+        >
+          <Zap className="w-4 h-4" />
+          Buy Now
+        </button>
+      )}
 
       {/* Add to Cart & Wishlist Row */}
       <div className="flex gap-3">
