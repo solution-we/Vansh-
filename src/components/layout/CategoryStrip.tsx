@@ -1,14 +1,29 @@
 import { Link } from 'react-router-dom';
-import { CATEGORIES, CATEGORY_LABELS, Section, Category } from '@/lib/types';
+import { Section } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useCategories } from '@/hooks/useCategories';
 
 interface CategoryStripProps {
   section: Section;
-  activeCategory?: Category;
+  activeCategory?: string;
 }
 
 export function CategoryStrip({ section, activeCategory }: CategoryStripProps) {
-  const categories = CATEGORIES[section];
+  const { categories, loading } = useCategories(section);
+
+  if (loading) {
+    return (
+      <div className="sticky top-nav z-30 bg-background border-b border-border">
+        <div className="container">
+          <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar touch-pan-x py-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-8 w-20 bg-secondary animate-pulse rounded-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sticky top-nav z-30 bg-background border-b border-border">
@@ -16,16 +31,16 @@ export function CategoryStrip({ section, activeCategory }: CategoryStripProps) {
         <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar touch-pan-x py-2">
           {categories.map((category) => (
             <Link
-              key={category}
-              to={`/${section}/${category}`}
+              key={category.id}
+              to={`/${section}/${category.name}`}
               className={cn(
                 'category-tab rounded-full',
-                activeCategory === category
+                activeCategory === category.name
                   ? 'category-tab-active'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
               )}
             >
-              {CATEGORY_LABELS[category]}
+              {category.display_name}
             </Link>
           ))}
         </div>
