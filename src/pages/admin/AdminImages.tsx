@@ -23,7 +23,7 @@ import { Plus, Trash2, Star, Search, Upload, Link, Image as ImageIcon, RefreshCw
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAllSiteImages } from '@/hooks/useSiteImages';
-import { useAllCategories, Category } from '@/hooks/useCategories';
+import { useAllCategories, CategoryData } from '@/hooks/useCategories';
 
 interface Product {
   id: string;
@@ -97,7 +97,7 @@ export const AdminImages = () => {
   // Category thumbnails
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useAllCategories();
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryData | null>(null);
   const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
   const [categoryImagePreview, setCategoryImagePreview] = useState<string | null>(null);
   const [categoryImageUrl, setCategoryImageUrl] = useState('');
@@ -180,11 +180,12 @@ export const AdminImages = () => {
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
+    // Generate the public URL using the correct Supabase URL format
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${filePath}`;
+    
+    console.log('Uploaded file, public URL:', publicUrl);
+    return publicUrl;
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,7 +397,7 @@ export const AdminImages = () => {
     }
   };
 
-  const openCategoryDialog = (category: Category) => {
+  const openCategoryDialog = (category: CategoryData) => {
     setSelectedCategory(category);
     setCategoryImageUrl(category.thumbnail_url || '');
     setCategoryImageFile(null);
@@ -493,7 +494,7 @@ export const AdminImages = () => {
     }
     acc[cat.section].push(cat);
     return acc;
-  }, {} as Record<string, Category[]>);
+  }, {} as Record<string, CategoryData[]>);
 
   const SECTION_ORDER = ['men', 'women', 'kids'];
   const SECTION_LABELS_MAP: Record<string, string> = {
