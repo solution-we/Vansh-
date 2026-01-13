@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
-import { Section, Category, CATEGORIES, CATEGORY_LABELS, SECTION_LABELS } from '@/lib/types';
+import { Section, SECTION_LABELS } from '@/lib/types';
 import { useProducts } from '@/hooks/useProducts';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { CategoryStrip } from '@/components/layout/CategoryStrip';
@@ -9,6 +9,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { FilterPanel } from '@/components/filters/FilterPanel';
 import { FilterState } from '@/components/layout/Layout';
+import { useAllCategories } from '@/hooks/useCategories';
 import vansheLogo from '@/assets/vanshe-logo.png';
 
 export default function CategoryPage() {
@@ -16,9 +17,11 @@ export default function CategoryPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({});
+  
+  const { categoryExistsInSection, getCategoryLabel, loading: categoriesLoading } = useAllCategories();
 
   const validSection = section as Section;
-  const validCategory = category as Category;
+  const validCategory = category || '';
 
   const { products, loading, error, subTypes } = useProducts({
     section: validSection,
@@ -32,13 +35,39 @@ export default function CategoryPage() {
   // Validation
   const validSections = ['men', 'women', 'kids'];
   if (!validSections.includes(validSection)) {
-    return <div className="p-8 text-center">Invalid section</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background">
+        <p className="font-serif text-xl mb-4">Section not found</p>
+        <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+          Go home
+        </Link>
+      </div>
+    );
   }
 
-  const validCategories = CATEGORIES[validSection];
-  if (!validCategories.includes(validCategory)) {
-    return <div className="p-8 text-center">Invalid category</div>;
+  // Wait for categories to load before validating
+  if (categoriesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+      </div>
+    );
   }
+
+  // Check if category exists in section
+  if (!categoryExistsInSection(validSection, validCategory)) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background">
+        <p className="font-serif text-xl mb-4">Category not found</p>
+        <Link to={`/${validSection}`} className="text-sm text-muted-foreground hover:text-foreground">
+          Browse {SECTION_LABELS[validSection]}
+        </Link>
+      </div>
+    );
+  }
+
+  const categoryLabel = getCategoryLabel(validCategory);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -76,7 +105,7 @@ export default function CategoryPage() {
         {/* Page Title */}
         <div className="mb-6">
           <h1 className="font-serif text-xl md:text-2xl">
-            {SECTION_LABELS[validSection]}'s {CATEGORY_LABELS[validCategory]}
+            {SECTION_LABELS[validSection]}'s {categoryLabel}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {products.length} {products.length === 1 ? 'product' : 'products'}
