@@ -43,13 +43,16 @@ serve(async (req) => {
     }
 
     // Check if user has admin or owner role
-    const { data: roleData } = await supabaseAdmin
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .single();
+      .in("role", ["admin", "owner"]);
 
-    if (!roleData || (roleData.role !== "admin" && roleData.role !== "owner")) {
+    // Check if any admin/owner role exists
+    const hasAdminOrOwnerRole = roleData && roleData.length > 0;
+
+    if (!hasAdminOrOwnerRole) {
       return new Response(JSON.stringify({ error: "Unauthorized: Admin or Owner access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -74,9 +77,23 @@ serve(async (req) => {
       roles?.map((r) => [r.user_id, { role: r.role, role_id: r.id }]) || []
     );
 
-    // Combine user data with roles
+    // Fetch all profiles to get full_name and username
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, full_name, username, avatar_url");
+
+    const profileMap = new Map(
+      profiles?.map((p) => [p.user_id, { 
+        full_name: p.full_name, 
+        username: p.username,
+        avatar_url: p.avatar_url 
+      }]) || []
+    );
+
+    // Combine user data with roles and profiles
     const usersWithRoles = users.map((u) => {
       const roleInfo = roleMap.get(u.id);
+      const profileInfo = profileMap.get(u.id);
       return {
         id: u.id,
         email: u.email || "No email",
@@ -87,6 +104,7 @@ serve(async (req) => {
         role: roleInfo?.role || null,
         role_id: roleInfo?.role_id || null,
         user_metadata: u.user_metadata,
+        profile: profileInfo || null,
       };
     });
 
