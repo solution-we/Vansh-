@@ -27,7 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, Shield, ShieldCheck, Crown, Search, UserPlus, Trash2, AlertCircle } from 'lucide-react';
+import { Users, Shield, ShieldCheck, Crown, Search, UserPlus, Trash2, AlertCircle, Eye, Phone, Mail, Calendar, User, MapPin } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -53,6 +54,13 @@ interface UserWithRole {
     full_name?: string | null;
     username?: string | null;
     avatar_url?: string | null;
+    phone?: string | null;
+    country_code?: string | null;
+    gender?: string | null;
+    date_of_birth?: string | null;
+    profile_completed?: boolean;
+    profile_created_at?: string | null;
+    profile_updated_at?: string | null;
   } | null;
 }
 
@@ -62,6 +70,8 @@ export const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [detailsUser, setDetailsUser] = useState<UserWithRole | null>(null);
   const [newRole, setNewRole] = useState<AppRole>('user');
   const [updating, setUpdating] = useState(false);
   const { user: currentUser, isAdmin } = useAdminAuth();
@@ -220,6 +230,16 @@ export const AdminUsers = () => {
   const getUserDisplayName = (user: UserWithRole) => {
     // Prioritize profile data, then fall back to user_metadata
     return user.profile?.full_name || user.profile?.username || user.user_metadata?.full_name || user.user_metadata?.name || null;
+  };
+
+  const handleViewDetails = (user: UserWithRole) => {
+    setDetailsUser(user);
+    setShowDetailsDialog(true);
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const filteredUsers = users.filter(user => {
@@ -409,17 +429,28 @@ export const AdminUsers = () => {
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {getUserDisplayName(user) || 'No name'}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {user.id.substring(0, 8)}...
-                          </span>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={user.profile?.avatar_url || undefined} />
+                            <AvatarFallback className="text-xs">
+                              {getInitials(getUserDisplayName(user))}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => handleViewDetails(user)}
+                              className="font-medium text-left hover:text-primary hover:underline transition-colors"
+                            >
+                              {getUserDisplayName(user) || 'No name'}
+                            </button>
+                            <span className="text-xs text-muted-foreground">
+                              @{user.profile?.username || 'no-username'}
+                            </span>
+                          </div>
+                          {user.id === currentUser?.id && (
+                            <Badge variant="outline" className="text-xs">You</Badge>
+                          )}
                         </div>
-                        {user.id === currentUser?.id && (
-                          <Badge variant="outline" className="mt-1">You</Badge>
-                        )}
                       </TableCell>
                       <TableCell>
                         <span className="text-sm">{user.email}</span>
@@ -438,6 +469,13 @@ export const AdminUsers = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewDetails(user)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -466,6 +504,128 @@ export const AdminUsers = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* User Details Dialog */}
+        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+              <DialogDescription>
+                Complete profile information for this user
+              </DialogDescription>
+            </DialogHeader>
+            {detailsUser && (
+              <div className="space-y-6">
+                {/* Profile Header */}
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={detailsUser.profile?.avatar_url || undefined} />
+                    <AvatarFallback className="text-xl">
+                      {getInitials(getUserDisplayName(detailsUser))}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {getUserDisplayName(detailsUser) || 'No name'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      @{detailsUser.profile?.username || 'no-username'}
+                    </p>
+                    <div className="mt-1">{getRoleBadge(detailsUser.role)}</div>
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="text-sm font-medium">{detailsUser.email}</p>
+                    </div>
+                    {detailsUser.email_confirmed_at && (
+                      <Badge variant="secondary" className="ml-auto text-xs">Verified</Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="text-sm font-medium">
+                        {detailsUser.profile?.phone 
+                          ? `${detailsUser.profile.country_code || ''} ${detailsUser.profile.phone}`
+                          : 'Not provided'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Gender</p>
+                      <p className="text-sm font-medium capitalize">
+                        {detailsUser.profile?.gender || 'Not provided'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Date of Birth</p>
+                      <p className="text-sm font-medium">
+                        {detailsUser.profile?.date_of_birth 
+                          ? format(new Date(detailsUser.profile.date_of_birth), 'MMMM d, yyyy')
+                          : 'Not provided'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Account Info */}
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="text-sm font-semibold mb-3">Account Information</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Account Created</p>
+                        <p className="font-medium">
+                          {detailsUser.created_at 
+                            ? format(new Date(detailsUser.created_at), 'MMM d, yyyy')
+                            : '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Last Sign In</p>
+                        <p className="font-medium">
+                          {detailsUser.last_sign_in_at 
+                            ? format(new Date(detailsUser.last_sign_in_at), 'MMM d, yyyy')
+                            : 'Never'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Profile Status</p>
+                        <Badge variant={detailsUser.profile?.profile_completed ? 'default' : 'secondary'}>
+                          {detailsUser.profile?.profile_completed ? 'Complete' : 'Incomplete'}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">User ID</p>
+                        <p className="font-mono text-xs truncate" title={detailsUser.id}>
+                          {detailsUser.id.substring(0, 12)}...
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Role Dialog */}
         <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
