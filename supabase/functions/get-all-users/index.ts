@@ -77,16 +77,23 @@ serve(async (req) => {
       roles?.map((r) => [r.user_id, { role: r.role, role_id: r.id }]) || []
     );
 
-    // Fetch all profiles to get full_name and username
+    // Fetch all profiles to get full user data
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
-      .select("user_id, full_name, username, avatar_url");
+      .select("user_id, full_name, username, avatar_url, phone, country_code, gender, date_of_birth, profile_completed, created_at, updated_at");
 
     const profileMap = new Map(
       profiles?.map((p) => [p.user_id, { 
         full_name: p.full_name, 
         username: p.username,
-        avatar_url: p.avatar_url 
+        avatar_url: p.avatar_url,
+        phone: p.phone,
+        country_code: p.country_code,
+        gender: p.gender,
+        date_of_birth: p.date_of_birth,
+        profile_completed: p.profile_completed,
+        profile_created_at: p.created_at,
+        profile_updated_at: p.updated_at
       }]) || []
     );
 
