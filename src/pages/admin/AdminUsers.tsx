@@ -49,6 +49,11 @@ interface UserWithRole {
     name?: string;
     [key: string]: any;
   } | null;
+  profile: {
+    full_name?: string | null;
+    username?: string | null;
+    avatar_url?: string | null;
+  } | null;
 }
 
 export const AdminUsers = () => {
@@ -68,14 +73,24 @@ export const AdminUsers = () => {
     const fetchCurrentUserRole = async () => {
       if (!currentUser) return;
       
+      // Fetch all roles for the user (they may have multiple)
       const { data } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', currentUser.id)
-        .single();
+        .eq('user_id', currentUser.id);
       
-      if (data) {
-        setCurrentUserRole(data.role as AppRole);
+      if (data && data.length > 0) {
+        // Prioritize owner role if user has multiple roles
+        const hasOwner = data.some(r => r.role === 'owner');
+        const hasAdmin = data.some(r => r.role === 'admin');
+        
+        if (hasOwner) {
+          setCurrentUserRole('owner');
+        } else if (hasAdmin) {
+          setCurrentUserRole('admin');
+        } else {
+          setCurrentUserRole(data[0].role as AppRole);
+        }
       }
     };
     
@@ -203,7 +218,8 @@ export const AdminUsers = () => {
   };
 
   const getUserDisplayName = (user: UserWithRole) => {
-    return user.user_metadata?.full_name || user.user_metadata?.name || null;
+    // Prioritize profile data, then fall back to user_metadata
+    return user.profile?.full_name || user.profile?.username || user.user_metadata?.full_name || user.user_metadata?.name || null;
   };
 
   const filteredUsers = users.filter(user => {
