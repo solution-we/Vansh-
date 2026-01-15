@@ -18,6 +18,8 @@ export function HeroBanner({ section, modelImage, productImage }: HeroBannerProp
         <img
           src={modelImage}
           alt={`${section} collection`}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
         />
       </Link>
@@ -30,6 +32,8 @@ export function HeroBanner({ section, modelImage, productImage }: HeroBannerProp
         <img
           src={productImage}
           alt="Featured product"
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
         />
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center p-4 md:p-6">
