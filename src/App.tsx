@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import Index from "./pages/Index";
 import SectionPage from "./pages/SectionPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -16,6 +17,10 @@ import CartPage from "./pages/CartPage";
 import WishlistPage from "./pages/WishlistPage";
 import NewArrivalsPage from "./pages/NewArrivalsPage";
 import AuthPage from "./pages/AuthPage";
+import CompleteProfilePage from "./pages/CompleteProfilePage";
+import TermsAcceptancePage from "./pages/TermsAcceptancePage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import NotFound from "./pages/NotFound";
 import OrdersPage from "./pages/account/OrdersPage";
 import AddressesPage from "./pages/account/AddressesPage";
@@ -46,50 +51,56 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                
-                {/* New Arrivals */}
-                <Route path="/new-arrivals" element={<NewArrivalsPage />} />
-                <Route path="/new-arrivals/:section" element={<NewArrivalsPage />} />
-                
-                {/* Auth */}
-                <Route path="/auth" element={<AuthPage />} />
-                
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-                <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
-                <Route path="/admin/categories" element={<AdminProtectedRoute><AdminCategories /></AdminProtectedRoute>} />
-                <Route path="/admin/variants" element={<AdminProtectedRoute><AdminVariants /></AdminProtectedRoute>} />
-                <Route path="/admin/images" element={<AdminProtectedRoute><AdminImages /></AdminProtectedRoute>} />
-                <Route path="/admin/product-images" element={<AdminProtectedRoute><AdminProductImages /></AdminProtectedRoute>} />
-                <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
-                <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
-                <Route path="/admin/colors" element={<AdminProtectedRoute><AdminColors /></AdminProtectedRoute>} />
-                
-                {/* Product detail - MUST be before /:section to avoid conflict */}
-                <Route path="/product/:id" element={<ProductPage />} />
-                
-                {/* Section pages */}
-                <Route path="/:section" element={<SectionPage />} />
-                
-                {/* Category pages */}
-                <Route path="/:section/:category" element={<CategoryPage />} />
-                
-                {/* Navigation pages */}
-                <Route path="/categories" element={<CategoriesPage />} />
-                <Route path="/account" element={<AccountPage />} />
-                <Route path="/account/orders" element={<OrdersPage />} />
-                <Route path="/account/addresses" element={<AddressesPage />} />
-                <Route path="/account/payments" element={<PaymentsPage />} />
-                <Route path="/account/help" element={<HelpPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/wishlist" element={<WishlistPage />} />
-                
-                {/* Catch-all */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <OnboardingGuard>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  
+                  {/* New Arrivals */}
+                  <Route path="/new-arrivals" element={<NewArrivalsPage />} />
+                  <Route path="/new-arrivals/:section" element={<NewArrivalsPage />} />
+                  
+                  {/* Auth & Onboarding */}
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/complete-profile" element={<CompleteProfilePage />} />
+                  <Route path="/terms-acceptance" element={<TermsAcceptancePage />} />
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+                  <Route path="/admin/products" element={<AdminProtectedRoute><AdminProducts /></AdminProtectedRoute>} />
+                  <Route path="/admin/categories" element={<AdminProtectedRoute><AdminCategories /></AdminProtectedRoute>} />
+                  <Route path="/admin/variants" element={<AdminProtectedRoute><AdminVariants /></AdminProtectedRoute>} />
+                  <Route path="/admin/images" element={<AdminProtectedRoute><AdminImages /></AdminProtectedRoute>} />
+                  <Route path="/admin/product-images" element={<AdminProtectedRoute><AdminProductImages /></AdminProtectedRoute>} />
+                  <Route path="/admin/orders" element={<AdminProtectedRoute><AdminOrders /></AdminProtectedRoute>} />
+                  <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+                  <Route path="/admin/colors" element={<AdminProtectedRoute><AdminColors /></AdminProtectedRoute>} />
+                  
+                  {/* Product detail */}
+                  <Route path="/product/:id" element={<ProductPage />} />
+                  
+                  {/* Section pages */}
+                  <Route path="/:section" element={<SectionPage />} />
+                  
+                  {/* Category pages */}
+                  <Route path="/:section/:category" element={<CategoryPage />} />
+                  
+                  {/* Navigation pages */}
+                  <Route path="/categories" element={<CategoriesPage />} />
+                  <Route path="/account" element={<AccountPage />} />
+                  <Route path="/account/orders" element={<OrdersPage />} />
+                  <Route path="/account/addresses" element={<AddressesPage />} />
+                  <Route path="/account/payments" element={<PaymentsPage />} />
+                  <Route path="/account/help" element={<HelpPage />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/wishlist" element={<WishlistPage />} />
+                  
+                  {/* Catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </OnboardingGuard>
             </BrowserRouter>
           </WishlistProvider>
         </CartProvider>
